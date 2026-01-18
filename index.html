@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comic Kingdom</title>
+<style>
+body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
+h1, h2 { text-align: center; }
+button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
+.section { display: none; }
+.section.active { display: block; }
+.box { background: white; padding: 1em; }
+</style>
+</head>
+<body>
+<h1>Comic Kingdom</h1>
+<nav>
+  <button onclick="show('status')">Status</button>
+  <button onclick="show('taverne')">Taverne</button>
+  <button onclick="show('quests')">Quests</button>
+  <button onclick="show('stadt')">Stadt</button>
+</nav>
+<div id="status" class="section active">
+  <h2>Status</h2>
+  <div class="box">
+    <p>Level: <span id="level">1</span></p>
+    <p>Gold: <span id="gold">50</span></p>
+    <p>Schokolade: <span id="schoko">1</span></p>
+    <p>Rüstung: Gewöhnlich</p>
+    <p>Klasse: Krieger</p>
+  </div>
+</div>
+<div id="taverne" class="section">
+  <h2>Taverne</h2>
+  <button onclick="acceptQuest()">Quest annehmen</button>
+  <button onclick="eat()">Essen kaufen (Buff)</button>
+</div>
+<div id="quests" class="section">
+  <h2>Quest</h2>
+  <p id="questText">Keine aktive Quest</p>
+  <button onclick="finishQuest()">Quest abschließen</button>
+</div>
+<div id="stadt" class="section">
+  <h2>Stadt</h2>
+  <button onclick="cityGuard()">Stadtwache (Gold)</button>
+</div>
+<script>
+let level = 1;
+let gold = 50;
+let schoko = 1;
+let questActive = false;
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function acceptQuest() {
+  if (questActive) {
+    alert("Du hast bereits eine Quest.");
+    return;
+  }
+  questActive = true;
+  document.getElementById("questText").innerText =
+    "Quest läuft… Monster bekämpfen.";
+  show('quests');
+}
+function finishQuest() {
+  if (!questActive) {
+    alert("Keine aktive Quest.");
+    return;
+  }
+  questActive = false;
+  level++;
+  gold += 20;
+  document.getElementById("level").innerText = level;
+  document.getElementById("gold").innerText = gold;
+  document.getElementById("questText").innerText =
+    "Quest abgeschlossen!";
+}
+function eat() {
+  if (gold < 10) {
+    alert("Nicht genug Gold.");
+    return;
+  }
+  gold -= 10;
+  document.getElementById("gold").innerText = gold;
+  alert("Buff aktiv!");
+}
+function cityGuard() {
+  gold += 5;
+  document.getElementById("gold").innerText = gold;
+}
+</script>
+</body>
+</html>
