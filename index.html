@@ -4,92 +4,86 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Comic Kingdom</title>
-<style>
-body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
-h1, h2 { text-align: center; }
-button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
-.section { display: none; }
-.section.active { display: block; }
-.box { background: white; padding: 1em; }
-</style>
+
+<link rel="stylesheet" href="styles.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#6b3bff">
+
 </head>
 <body>
-<h1>Comic Kingdom</h1>
-<nav>
-  <button onclick="show('status')">Status</button>
-  <button onclick="show('taverne')">Taverne</button>
-  <button onclick="show('quests')">Quests</button>
-  <button onclick="show('stadt')">Stadt</button>
-</nav>
-<div id="status" class="section active">
-  <h2>Status</h2>
-  <div class="box">
-    <p>Level: <span id="level">1</span></p>
-    <p>Gold: <span id="gold">50</span></p>
-    <p>Schokolade: <span id="schoko">1</span></p>
-    <p>Rüstung: Gewöhnlich</p>
-    <p>Klasse: Krieger</p>
+  <div class="app">
+    <header>
+      <h1>Comic Kingdom</h1>
+      <p>Level: <span id="level">1</span> | Gold: <span id="gold">50</span></p>
+    </header>
+
+    <nav>
+      <button onclick="show('status')">Status</button>
+      <button onclick="show('taverne')">Taverne</button>
+      <button onclick="show('quests')">Quests</button>
+      <button onclick="show('farm')">Farm</button>
+      <button onclick="show('stadt')">Stadt</button>
+    </nav>
+
+    <main>
+      <section id="status" class="section active">
+        <h2>Status</h2>
+        <div class="box">
+          <p>Klasse: <span id="klasseText">Krieger</span></p>
+          <p>Rüstung: <span id="armorText">Gewöhnlich</span></p>
+          <p>Schokolade: <span id="schoko">1</span></p>
+        </div>
+      </section>
+
+      <section id="taverne" class="section">
+        <h2>Taverne</h2>
+        <div class="box">
+          <button onclick="acceptQuest()">Quest annehmen</button>
+          <button onclick="eat()">Essen kaufen (Buff)</button>
+          <button onclick="show('classSelect')">Klasse wechseln</button>
+        </div>
+      </section>
+
+      <section id="quests" class="section">
+        <h2>Quests</h2>
+        <div class="box">
+          <p id="questText">Keine aktive Quest</p>
+          <button onclick="finishQuest()">Quest abschließen</button>
+        </div>
+      </section>
+
+      <section id="farm" class="section">
+        <h2>Farm</h2>
+        <div class="box">
+          <p>Pflanze anlegen:</p>
+          <button onclick="plant('Weizen')">Weizen (10s)</button>
+          <button onclick="plant('Karotte')">Karotte (20s)</button>
+          <button onclick="plant('Tomate')">Tomate (30s)</button>
+          <div id="farmStatus"></div>
+        </div>
+      </section>
+
+      <section id="stadt" class="section">
+        <h2>Stadt</h2>
+        <div class="box">
+          <button onclick="cityGuard()">Stadtwache (Gold)</button>
+        </div>
+      </section>
+
+      <section id="classSelect" class="section">
+        <h2>Klasse wählen</h2>
+        <div class="box">
+          <button onclick="setClass('Krieger')">Krieger</button>
+          <button onclick="setClass('Berserker')">Berserker</button>
+          <button onclick="setClass('Magier')">Magier</button>
+          <button onclick="setClass('Bogenschütze')">Bogenschütze</button>
+          <button onclick="setClass('Heiler')">Heiler</button>
+          <button onclick="show('status')">Zurück</button>
+        </div>
+      </section>
+    </main>
   </div>
-</div>
-<div id="taverne" class="section">
-  <h2>Taverne</h2>
-  <button onclick="acceptQuest()">Quest annehmen</button>
-  <button onclick="eat()">Essen kaufen (Buff)</button>
-</div>
-<div id="quests" class="section">
-  <h2>Quest</h2>
-  <p id="questText">Keine aktive Quest</p>
-  <button onclick="finishQuest()">Quest abschließen</button>
-</div>
-<div id="stadt" class="section">
-  <h2>Stadt</h2>
-  <button onclick="cityGuard()">Stadtwache (Gold)</button>
-</div>
-<script>
-let level = 1;
-let gold = 50;
-let schoko = 1;
-let questActive = false;
-function show(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-function acceptQuest() {
-  if (questActive) {
-    alert("Du hast bereits eine Quest.");
-    return;
-  }
-  questActive = true;
-  document.getElementById("questText").innerText =
-    "Quest läuft… Monster bekämpfen.";
-  show('quests');
-}
-function finishQuest() {
-  if (!questActive) {
-    alert("Keine aktive Quest.");
-    return;
-  }
-  questActive = false;
-  level++;
-  gold += 20;
-  document.getElementById("level").innerText = level;
-  document.getElementById("gold").innerText = gold;
-  document.getElementById("questText").innerText =
-    "Quest abgeschlossen!";
-}
-function eat() {
-  if (gold < 10) {
-    alert("Nicht genug Gold.");
-    return;
-  }
-  gold -= 10;
-  document.getElementById("gold").innerText = gold;
-  alert("Buff aktiv!");
-}
-function cityGuard() {
-  gold += 5;
-  document.getElementById("gold").innerText = gold;
-}
-</script>
+
+  <script src="app.js"></script>
 </body>
 </html>
