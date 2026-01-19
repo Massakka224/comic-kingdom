@@ -21,7 +21,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
 
 <h1>Comic Kingdom</h1>
 
-<!-- Navigation -->
 <nav>
 <button onclick="show('klassenauswahl')">Charakter wählen</button>
 <button onclick="show('status')">Status</button>
@@ -33,9 +32,8 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
 <button onclick="show('ausruestung')">Ausrüstung</button>
 </nav>
 
-<!-- Charakterauswahl -->
 <div id="klassenauswahl" class="section active">
-  <h2>Charakter erstellen (wie S&F)</h2>
+  <h2>Charakter erstellen</h2>
   <div class="box">
     <button onclick="createClass('Krieger')">Krieger</button>
     <button onclick="createClass('Berserker')">Berserker</button>
@@ -44,7 +42,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Status -->
 <div id="status" class="section">
   <h2>Status</h2>
   <div class="box">
@@ -57,7 +54,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Stadt -->
 <div id="stadt" class="section">
   <h2>Stadt</h2>
   <div class="box">
@@ -66,7 +62,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Quest -->
 <div id="quests" class="section">
   <h2>Quests</h2>
   <div class="box">
@@ -76,7 +71,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Dungeon -->
 <div id="dungeon" class="section">
   <h2>Dungeon</h2>
   <div class="box">
@@ -85,7 +79,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Arena -->
 <div id="arena" class="section">
   <h2>Arena</h2>
   <div class="box">
@@ -94,13 +87,11 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Inventar -->
 <div id="inventar" class="section">
   <h2>Inventar</h2>
   <div class="box" id="inventoryList">Keine Items</div>
 </div>
 
-<!-- Ausrüstung -->
 <div id="ausruestung" class="section">
   <h2>Ausrüstung</h2>
   <div class="box">
@@ -109,7 +100,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Modal -->
 <div id="modal" style="display:none;">
   <div class="box">
     <h2>Item Details</h2>
@@ -143,23 +133,21 @@ let equipment = {
 };
 let currentItem = null;
 
-// Gebäude Daten (Hay Day + S&F)
 let buildingsData = [
-  { id: "farm", name: "Farm", type: "hayday", lvl: 1, desc: "Produziert Ressourcen.", action: "collectFarm" },
-  { id: "stall", name: "Stall", type: "hayday", lvl: 1, desc: "Züchtet Tiere.", action: "collectAnimals" },
-  { id: "wood", name: "Holzfäller", type: "hayday", lvl: 1, desc: "Sammelt Holz.", action: "collectWood" },
-  { id: "stone", name: "Steinbruch", type: "hayday", lvl: 1, desc: "Sammelt Stein.", action: "collectStone" },
-  { id: "clay", name: "Lehmgrube", type: "hayday", lvl: 1, desc: "Sammelt Lehm.", action: "collectClay" },
-  { id: "bakery", name: "Bäckerei", type: "hayday", lvl: 1, desc: "Stellt Nahrung her.", action: "bakeFood" },
-  { id: "tavern", name: "Taverne", type: "sf", lvl: 1, desc: "Kauft Buffs & Essen.", action: "openTavern" },
-  { id: "questhouse", name: "Questhaus", type: "sf", lvl: 1, desc: "Nimmt Quests an.", action: "openQuesthouse" },
-  { id: "arena", name: "Arena", type: "sf", lvl: 1, desc: "Kämpfe gegen andere Spieler.", action: "openArena" },
-  { id: "dungeon", name: "Dungeon", type: "sf", lvl: 1, desc: "Betritt Dungeons.", action: "openDungeon" },
-  { id: "market", name: "Marktplatz", type: "sf", lvl: 1, desc: "Handel & Verkauf.", action: "openMarket" },
-  { id: "training", name: "Trainingsplatz", type: "sf", lvl: 1, desc: "Trainiert deine Werte.", action: "openTraining" }
+  { id: "farm", name: "Farm", lvl: 1, desc: "Produziert Ressourcen.", action: "collectFarm" },
+  { id: "stall", name: "Stall", lvl: 1, desc: "Züchtet Tiere.", action: "collectAnimals" },
+  { id: "wood", name: "Holzfäller", lvl: 1, desc: "Sammelt Holz.", action: "collectWood" },
+  { id: "stone", name: "Steinbruch", lvl: 1, desc: "Sammelt Stein.", action: "collectStone" },
+  { id: "clay", name: "Lehmgrube", lvl: 1, desc: "Sammelt Lehm.", action: "collectClay" },
+  { id: "bakery", name: "Bäckerei", lvl: 1, desc: "Stellt Nahrung her.", action: "bakeFood" },
+  { id: "tavern", name: "Taverne", lvl: 1, desc: "Kauft Buffs & Essen.", action: "openTavern" },
+  { id: "questhouse", name: "Questhaus", lvl: 1, desc: "Nimmt Quests an.", action: "openQuesthouse" },
+  { id: "arena", name: "Arena", lvl: 1, desc: "Kämpfe gegen andere Spieler.", action: "openArena" },
+  { id: "dungeon", name: "Dungeon", lvl: 1, desc: "Betritt Dungeons.", action: "openDungeon" },
+  { id: "market", name: "Marktplatz", lvl: 1, desc: "Handel & Verkauf.", action: "openMarket" },
+  { id: "training", name: "Trainingsplatz", lvl: 1, desc: "Trainiert deine Werte.", action: "openTraining" }
 ];
 
-// Save / Load
 function saveGame() {
   const data = {
     level, gold, schoko, kristalle, questActive, maxEnergy, energy, klasse,
@@ -186,7 +174,6 @@ function loadGame() {
   }
 }
 
-// UI
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -206,7 +193,6 @@ function updateUI() {
   renderEquipment();
 }
 
-// Klassen erstellen
 function createClass(c) {
   klasse = c;
   level = 1;
@@ -219,7 +205,6 @@ function createClass(c) {
   show("status");
 }
 
-// Gebäude
 function renderBuildings() {
   const el = document.getElementById("buildings");
   el.innerHTML = "";
@@ -250,7 +235,220 @@ function openBuilding(id) {
   if (b.action === "openTraining") training();
 }
 
-// Hay Day Funktionen
 function collectFarm() {
   gold += 5;
   energy -= 5;
+  alert("Farm: Du bekommst 5 Gold!");
+  saveGame();
+  updateUI();
+}
+function collectAnimals() {
+  gold += 8;
+  energy -= 8;
+  alert("Stall: Du bekommst 8 Gold!");
+  saveGame();
+  updateUI();
+}
+function collectWood() {
+  gold += 6;
+  energy -= 6;
+  alert("Holzfäller: Du bekommst 6 Gold!");
+  saveGame();
+  updateUI();
+}
+function collectStone() {
+  gold += 7;
+  energy -= 7;
+  alert("Steinbruch: Du bekommst 7 Gold!");
+  saveGame();
+  updateUI();
+}
+function collectClay() {
+  gold += 6;
+  energy -= 6;
+  alert("Lehmgrube: Du bekommst 6 Gold!");
+  saveGame();
+  updateUI();
+}
+function bakeFood() {
+  schoko += 1;
+  energy -= 10;
+  alert("Bäckerei: Du bekommst 1 Schokolade!");
+  saveGame();
+  updateUI();
+}
+
+function openTavern() {
+  const choice = prompt("Taverne: Was möchtest du essen? (1=Steak +10 Energie, 2=Trank +20 Energie, 3=Kuchen +5 Energie)");
+  if (choice === "1") { energy = Math.min(maxEnergy, energy + 10); gold -= 10; }
+  if (choice === "2") { energy = Math.min(maxEnergy, energy + 20); gold -= 20; }
+  if (choice === "3") { energy = Math.min(maxEnergy, energy + 5); gold -= 5; }
+  saveGame();
+  updateUI();
+}
+
+function acceptQuest() {
+  if (questActive) return alert("Du hast bereits eine Quest.");
+  questActive = true;
+  document.getElementById("questText").innerText = "Quest läuft… Monster bekämpfen.";
+  saveGame();
+  updateUI();
+}
+
+function finishQuest() {
+  if (!questActive) return alert("Keine aktive Quest.");
+  questActive = false;
+  level++;
+  gold += 20;
+  energy -= 15;
+  addItem(randomItem());
+  document.getElementById("questText").innerText = "Quest abgeschlossen!";
+  saveGame();
+  updateUI();
+}
+
+function enterDungeon() {
+  if (energy < 20) return alert("Nicht genug Energie.");
+  energy -= 20;
+  gold += 30;
+  level++;
+  addItem(randomItem());
+  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen!";
+  saveGame();
+  updateUI();
+}
+
+function fightArena() {
+  if (energy < 10) return alert("Nicht genug Energie.");
+  energy -= 10;
+  const win = Math.random() > 0.5;
+  if (win) {
+    gold += 15;
+    addItem(randomItem());
+    document.getElementById("arenaText").innerText = "Du hast gewonnen!";
+  } else {
+    document.getElementById("arenaText").innerText = "Du hast verloren!";
+  }
+  saveGame();
+  updateUI();
+}
+
+function market() {
+  const choice = prompt("Marktplatz: Kaufen (1=Schokolade +1 für 20 Gold)");
+  if (choice === "1" && gold >= 20) {
+    gold -= 20;
+    schoko += 1;
+  }
+  saveGame();
+  updateUI();
+}
+
+function training() {
+  if (gold < 10) return alert("Nicht genug Gold.");
+  gold -= 10;
+  level++;
+  alert("Training erfolgreich! Level +1");
+  saveGame();
+  updateUI();
+}
+
+function addItem(item) {
+  inventory.push(item);
+}
+
+function randomItem() {
+  const rarities = ["gewöhnlich","ungewöhnlich","selten","episch","legendär","mystisch","himmlisch"];
+  const rarity = rarities[Math.floor(Math.random() * rarities.length)];
+  return {
+    id: Date.now(),
+    name: `${rarity.toUpperCase()} Item #${Math.floor(Math.random()*999)}`,
+    rarity,
+    lvlReq: rarity === "gewöhnlich" ? 1 : rarity === "ungewöhnlich" ? 20 : rarity === "selten" ? 30 : rarity === "episch" ? 100 : rarity === "legendär" ? 150 : rarity === "mystisch" ? 500 : 700,
+    atk: Math.floor(Math.random()*10)+1,
+    def: Math.floor(Math.random()*10)+1,
+    class: ["Krieger","Berserker","Zauberer","Nekromant"][Math.floor(Math.random()*4)]
+  };
+}
+
+function renderInventory() {
+  const el = document.getElementById("inventoryList");
+  if (inventory.length === 0) { el.innerHTML = "Keine Items"; return; }
+  el.innerHTML = "";
+  inventory.forEach(it => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<b>${it.name}</b><br>Rarität: ${it.rarity} | Level: ${it.lvlReq} | Klasse: ${it.class}`;
+    div.onclick = () => openItem(it.id);
+    el.appendChild(div);
+  });
+}
+
+function renderEquipment() {
+  const el = document.getElementById("slots");
+  el.innerHTML = "";
+  for (let slot in equipment) {
+    const it = equipment[slot];
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `<b>${slot}</b>: ${it ? it.name : "leer"}`;
+    el.appendChild(div);
+  }
+}
+
+function openItem(id) {
+  currentItem = inventory.find(i => i.id === id);
+  if (!currentItem) return;
+  document.getElementById("itemDetails").innerHTML = `
+    <b>${currentItem.name}</b><br>
+    Rarität: ${currentItem.rarity}<br>
+    Level: ${currentItem.lvlReq}<br>
+    ATK: ${currentItem.atk}<br>
+    DEF: ${currentItem.def}<br>
+    Klasse: ${currentItem.class}
+  `;
+  document.getElementById("modal").style.display = "block";
+}
+
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+}
+
+function equipItem() {
+  if (!currentItem) return;
+  if (currentItem.class !== klasse) return alert("Diese Klasse kann das nicht tragen.");
+  equipment.weapon = currentItem;
+  saveGame();
+  updateUI();
+  closeModal();
+}
+
+function unequipItem() {
+  equipment.weapon = null;
+  saveGame();
+  updateUI();
+  closeModal();
+}
+
+function upgradeItem() {
+  if (!currentItem) return;
+  currentItem.atk += 1;
+  currentItem.def += 1;
+  saveGame();
+  updateUI();
+}
+
+function destroyItem() {
+  if (!currentItem) return;
+  inventory = inventory.filter(i => i.id !== currentItem.id);
+  currentItem = null;
+  saveGame();
+  updateUI();
+  closeModal();
+}
+
+loadGame();
+updateUI();
+</script>
+
+</body>
+</html>
