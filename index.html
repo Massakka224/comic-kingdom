@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 6.3</title>
+<title>Comic Kingdom - Version 6.3 Fix</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
 h1, h2 { text-align: center; }
@@ -28,7 +28,7 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   <button onclick="show('inventar')">Inventar</button>
   <button onclick="show('ausruestung')">Ausrüstung</button>
   <button onclick="show('skills')">Skills</button>
-  <button onclick="show('gebäude')">Gebäude</button>
+  <button onclick="show('gebaeude')">Gebäude</button>
 </nav>
 
 <!-- Status -->
@@ -91,3 +91,210 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
 <!-- Skills -->
 <div id="skills" class="section">
   <h2>Skills</h2>
+  <div class="box">
+    <p>Skillpunkte: <span id="skillPoints">0</span></p>
+    <div id="skillList"></div>
+  </div>
+</div>
+
+<!-- Gebäude -->
+<div id="gebaeude" class="section">
+  <h2>Gebäude</h2>
+  <div class="box">
+    <button onclick="build('Taverne')">Taverne bauen</button>
+    <button onclick="build('Schmiede')">Schmiede bauen</button>
+    <button onclick="build('Markt')">Markt bauen</button>
+    <button onclick="build('Steinbruch')">Steinbruch bauen</button>
+    <button onclick="build('Festung')">Festung bauen</button>
+    <button onclick="build('Farm')">Farm bauen</button>
+    <button onclick="build('Mine')">Mine bauen</button>
+    <button onclick="build('Lager')">Lager bauen</button>
+    <p id="buildText">Keine Gebäude gebaut</p>
+  </div>
+</div>
+
+<!-- Modal -->
+<div id="modal">
+  <div class="box">
+    <h2>Item Details</h2>
+    <div id="itemDetails"></div>
+    <button onclick="equipItem()">Ausrüsten</button>
+    <button onclick="unequipItem()">Ablegen</button>
+    <button onclick="upgradeItem()">Verbessern</button>
+    <button onclick="destroyItem()">Zerstören</button>
+    <button onclick="closeModal()">Schließen</button>
+  </div>
+</div>
+
+<script>
+let level = 1;
+let gold = 50;
+let schoko = 1;
+let kristalle = 0;
+let questActive = false;
+let maxEnergy = 100;
+let energy = maxEnergy;
+let klasse = "Krieger";
+let skillPoints = 0;
+let inventory = [];
+let equipment = { weapon: null, armor: null, ring: null };
+let activeItem = null;
+
+function show(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function updateStatus() {
+  document.getElementById("level").innerText = level;
+  document.getElementById("gold").innerText = gold;
+  document.getElementById("energy").innerText = energy;
+  document.getElementById("maxEnergy").innerText = maxEnergy;
+  document.getElementById("schoko").innerText = schoko;
+  document.getElementById("kristalle").innerText = kristalle;
+  document.getElementById("klasse").innerText = klasse;
+  document.getElementById("skillPoints").innerText = skillPoints;
+}
+
+function acceptQuest() {
+  if (questActive) { alert("Du hast bereits eine Quest."); return; }
+  if (energy < 10) { alert("Nicht genug Energie."); return; }
+  questActive = true;
+  energy -= 10;
+  document.getElementById("questText").innerText = "Quest läuft… Monster bekämpfen.";
+  updateStatus();
+}
+
+function finishQuest() {
+  if (!questActive) { alert("Keine aktive Quest."); return; }
+  questActive = false;
+  level++;
+  gold += 20;
+  skillPoints += 1;
+  inventory.push({name: "Rüstungsteil (Gewöhnlich)", type:"armor", value:5});
+  document.getElementById("questText").innerText = "Quest abgeschlossen!";
+  updateStatus();
+  renderInventory();
+  renderEquipmentSlots();
+}
+
+function enterDungeon() {
+  if (energy < 20) { alert("Nicht genug Energie."); return; }
+  energy -= 20;
+  gold += 50;
+  kristalle += 1;
+  inventory.push({name: "Dungeon Loot (Fortgeschritten)", type:"weapon", value:10});
+  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen!";
+  updateStatus();
+  renderInventory();
+  renderEquipmentSlots();
+}
+
+function cityGuard() {
+  gold += 5;
+  updateStatus();
+}
+
+function fillEnergyWithChocolate() {
+  if (schoko < 1) { alert("Keine Schokolade."); return; }
+  schoko--;
+  energy = Math.min(maxEnergy, energy + 30);
+  updateStatus();
+}
+
+function renderInventory() {
+  const list = document.getElementById("inventoryList");
+  if (inventory.length === 0) { list.innerText = "Keine Items"; return; }
+  list.innerHTML = "";
+  inventory.forEach((item, index) => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerText = item.name;
+    div.onclick = () => openItem(index);
+    list.appendChild(div);
+  });
+}
+
+function renderEquipmentSlots() {
+  const slots = document.getElementById("slots");
+  slots.innerHTML = `
+    <div class="item">Waffe: ${equipment.weapon ? equipment.weapon.name : "Keine"}</div>
+    <div class="item">Rüstung: ${equipment.armor ? equipment.armor.name : "Keine"}</div>
+    <div class="item">Ring: ${equipment.ring ? equipment.ring.name : "Keine"}</div>
+  `;
+}
+
+function openItem(index) {
+  activeItem = inventory[index];
+  document.getElementById("itemDetails").innerHTML = `
+    <p>Name: ${activeItem.name}</p>
+    <p>Typ: ${activeItem.type}</p>
+    <p>Wert: ${activeItem.value}</p>
+  `;
+  document.getElementById("modal").style.display = "flex";
+}
+
+function equipItem() {
+  if (!activeItem) return;
+  if (activeItem.type === "weapon") equipment.weapon = activeItem;
+  if (activeItem.type === "armor") equipment.armor = activeItem;
+  if (activeItem.type === "ring") equipment.ring = activeItem;
+  closeModal();
+  renderEquipmentSlots();
+}
+
+function unequipItem() {
+  equipment.weapon = null;
+  equipment.armor = null;
+  equipment.ring = null;
+  closeModal();
+  renderEquipmentSlots();
+}
+
+function upgradeItem() {
+  if (!activeItem) return;
+  activeItem.value += 5;
+  closeModal();
+  renderInventory();
+}
+
+function destroyItem() {
+  if (!activeItem) return;
+  inventory = inventory.filter(i => i !== activeItem);
+  closeModal();
+  renderInventory();
+}
+
+function closeModal() {
+  document.getElementById("modal").style.display = "none";
+  activeItem = null;
+}
+
+function build(name) {
+  document.getElementById("buildText").innerText = name + " gebaut!";
+  gold -= 20;
+  updateStatus();
+}
+
+function renderSkills() {
+  const list = document.getElementById("skillList");
+  list.innerHTML = `
+    <div class="item">Stärke +1 <button onclick="addSkill(1)">+</button></div>
+    <div class="item">Intelligenz +1 <button onclick="addSkill(2)">+</button></div>
+    <div class="item">Geschick +1 <button onclick="addSkill(3)">+</button></div>
+  `;
+}
+
+function addSkill(type) {
+  if (skillPoints < 1) { alert("Keine Skillpunkte."); return; }
+  skillPoints--;
+  updateStatus();
+}
+
+updateStatus();
+renderInventory();
+renderEquipmentSlots();
+renderSkills();
+</script>
+</body>
+</html>
