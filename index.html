@@ -3,17 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 8</title>
+<title>Comic Kingdom – Version 8.1</title>
 
 <style>
 body {
   font-family: Arial, sans-serif;
   background: #f2f2f2;
   margin: 0;
-  padding: 0;
 }
 
-h1, h2, h3 {
+h1, h2 {
   text-align: center;
 }
 
@@ -24,7 +23,6 @@ nav {
   padding: 10px;
   display: flex;
   gap: 5px;
-  z-index: 10;
 }
 
 nav button {
@@ -60,9 +58,6 @@ nav button {
   cursor: pointer;
   font-weight: bold;
 }
-.building:hover {
-  background: #ccc;
-}
 
 .item {
   border: 1px solid #aaa;
@@ -77,19 +72,17 @@ nav button {
 
 <h1>Comic Kingdom</h1>
 
-<!-- HAUPTMENÜ -->
 <nav>
-  <button onclick="showSection('status')">Status</button>
-  <button onclick="showSection('quests')">Quests</button>
-  <button onclick="showSection('dungeon')">Dungeon</button>
-  <button onclick="showSection('city')">Stadt</button>
-  <button onclick="showSection('inventory')">Inventar</button>
+  <button onclick="show('status')">Status</button>
+  <button onclick="show('quests')">Quests</button>
+  <button onclick="show('dungeon')">Dungeon</button>
+  <button onclick="show('city')">Stadt</button>
+  <button onclick="show('inventory')">Inventar</button>
 </nav>
 
-<!-- KLASSENAUSWAHL -->
-<div id="characterSelect" class="section active">
+<!-- CHARAKTER -->
+<div id="character" class="section active">
   <h2>Wähle deine Klasse</h2>
-
   <div class="box">
     <button onclick="selectClass('Krieger')">⚔ Krieger</button><br><br>
     <button onclick="selectClass('Berserker')">🪓 Berserker</button><br><br>
@@ -98,61 +91,49 @@ nav button {
   </div>
 </div>
 
-<!-- STATUS -->
 <div id="status" class="section">
   <h2>Status</h2>
   <div class="box">
-    <p>Klasse: <span id="classText"></span></p>
-    <p>Level: <span id="level">1</span></p>
-    <p>Gold: <span id="gold">50</span></p>
-    <p>Energie: <span id="energy">100</span> / 100</p>
-    <p>Schokolade: <span id="choco">1</span></p>
+    <p>Klasse: <span id="class"></span></p>
+    <p>Level: <span id="level"></span></p>
+    <p>Gold: <span id="gold"></span></p>
+    <p>Energie: <span id="energy"></span>/100</p>
+    <p>Schokolade: <span id="choco"></span></p>
   </div>
 </div>
 
-<!-- QUESTS -->
 <div id="quests" class="section">
   <h2>Quests</h2>
   <div class="box">
     <p id="questText">Keine aktive Quest</p>
-    <button onclick="acceptQuest()">Quest annehmen</button>
+    <button onclick="startQuest()">Quest annehmen</button>
     <button onclick="finishQuest()">Quest abschließen</button>
   </div>
 </div>
 
-<!-- DUNGEON -->
 <div id="dungeon" class="section">
   <h2>Dungeon</h2>
   <div class="box">
-    <p id="dungeonText">Bereit für den Kampf</p>
-    <button onclick="enterDungeon()">Dungeon betreten</button>
+    <button onclick="runDungeon()">Dungeon betreten</button>
   </div>
 </div>
 
-<!-- STADT -->
 <div id="city" class="section">
   <h2>Stadt</h2>
-
-  <div class="building" onclick="openBuilding('tavern')">🍺 Taverne</div>
-  <div class="building" onclick="openBuilding('forge')">⚒ Schmiede</div>
-  <div class="building" onclick="openBuilding('farm')">🌾 Farm</div>
-  <div class="building" onclick="openBuilding('fortress')">🏰 Festung</div>
-
-  <div class="box" id="buildingMenu">
-    <p>Wähle ein Gebäude.</p>
-  </div>
+  <div class="building" onclick="tavern()">🍺 Taverne</div>
+  <div class="building">⚒ Schmiede</div>
+  <div class="building">🌾 Farm</div>
+  <div class="building">🏰 Festung</div>
+  <div class="box" id="cityBox">Wähle ein Gebäude</div>
 </div>
 
-<!-- INVENTAR -->
 <div id="inventory" class="section">
   <h2>Inventar</h2>
-  <div class="box" id="inventoryList">
-    Keine Items
-  </div>
+  <div class="box" id="inv"></div>
 </div>
 
 <script>
-const player = {
+let player = {
   class: "",
   level: 1,
   gold: 50,
@@ -161,125 +142,96 @@ const player = {
   inventory: []
 };
 
-let questActive = false;
-
-const itemNames = [
-  "Altes Schwert",
-  "Rostige Axt",
+const itemPool = [
+  "Rostiges Schwert",
   "Magischer Stab",
-  "Schattenklinge",
-  "Helm des Wanderers",
-  "Rüstung der Bestie"
+  "Schattenhelm",
+  "Axt der Bestie",
+  "Umhang des Lehrlings"
 ];
 
-function showSection(id) {
+function save() {
+  localStorage.setItem("comicKingdomSave", JSON.stringify(player));
+}
+
+function load() {
+  const data = localStorage.getItem("comicKingdomSave");
+  if (data) {
+    player = JSON.parse(data);
+    updateUI();
+    show("status");
+  }
+}
+
+function show(id) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
 function selectClass(c) {
   player.class = c;
-  document.getElementById("classText").innerText = c;
-  showSection("status");
+  save();
+  updateUI();
+  show("status");
 }
 
-function acceptQuest() {
-  if (questActive) return;
-  if (player.energy < 10) {
-    alert("Nicht genug Energie!");
-    return;
-  }
-  questActive = true;
-  player.energy -= 10;
-  updateStatus();
-  document.getElementById("questText").innerText = "Quest läuft...";
-}
-
-function finishQuest() {
-  if (!questActive) return;
-  questActive = false;
-  player.gold += 20;
-  player.level += 1;
-
-  const item = itemNames[Math.floor(Math.random() * itemNames.length)];
-  player.inventory.push(item);
-
-  updateStatus();
-  updateInventory();
-  document.getElementById("questText").innerText = "Quest abgeschlossen!";
-}
-
-function enterDungeon() {
-  if (player.energy < 20) {
-    alert("Nicht genug Energie!");
-    return;
-  }
-  player.energy -= 20;
-  player.gold += 50;
-  updateStatus();
-  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen!";
-}
-
-function openBuilding(type) {
-  const menu = document.getElementById("buildingMenu");
-
-  if (type === "tavern") {
-    menu.innerHTML = `
-      <h3>Taverne</h3>
-      <p>Erhalte Quests und fülle Energie.</p>
-      <button onclick="eatFood()">Essen kaufen (+20 Energie)</button>
-    `;
-  }
-
-  if (type === "forge") {
-    menu.innerHTML = `
-      <h3>Schmiede</h3>
-      <p>Verbessere Ausrüstung (später).</p>
-    `;
-  }
-
-  if (type === "farm") {
-    menu.innerHTML = `
-      <h3>Farm</h3>
-      <p>Sammle Ressourcen (kommend).</p>
-    `;
-  }
-
-  if (type === "fortress") {
-    menu.innerHTML = `
-      <h3>Festung</h3>
-      <p>Erhöht deine Stärke.</p>
-    `;
-  }
-}
-
-function eatFood() {
-  if (player.choco <= 0) {
-    alert("Keine Schokolade!");
-    return;
-  }
-  player.choco--;
-  player.energy = Math.min(100, player.energy + 20);
-  updateStatus();
-}
-
-function updateStatus() {
+function updateUI() {
+  document.getElementById("class").innerText = player.class;
   document.getElementById("level").innerText = player.level;
   document.getElementById("gold").innerText = player.gold;
   document.getElementById("energy").innerText = player.energy;
   document.getElementById("choco").innerText = player.choco;
-}
 
-function updateInventory() {
-  const inv = document.getElementById("inventoryList");
+  const inv = document.getElementById("inv");
   inv.innerHTML = "";
   player.inventory.forEach(i => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerText = i;
-    inv.appendChild(div);
+    const d = document.createElement("div");
+    d.className = "item";
+    d.innerText = i;
+    inv.appendChild(d);
   });
 }
+
+function startQuest() {
+  if (player.energy < 10) return alert("Zu wenig Energie");
+  player.energy -= 10;
+  save();
+  updateUI();
+  document.getElementById("questText").innerText = "Quest läuft...";
+}
+
+function finishQuest() {
+  player.level++;
+  player.gold += 20;
+  const item = itemPool[Math.floor(Math.random() * itemPool.length)];
+  player.inventory.push(item);
+  save();
+  updateUI();
+  document.getElementById("questText").innerText = "Quest abgeschlossen!";
+}
+
+function runDungeon() {
+  if (player.energy < 20) return alert("Zu wenig Energie");
+  player.energy -= 20;
+  player.gold += 50;
+  save();
+  updateUI();
+}
+
+function tavern() {
+  document.getElementById("cityBox").innerHTML =
+    "<p>Essen kaufen (+20 Energie)</p><button onclick='eat()'>Essen</button>";
+}
+
+function eat() {
+  if (player.choco <= 0) return alert("Keine Schokolade");
+  player.choco--;
+  player.energy = Math.min(100, player.energy + 20);
+  save();
+  updateUI();
+}
+
+load();
 </script>
 
 </body>
