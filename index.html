@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 9</title>
+<title>Comic Kingdom - Version 10</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
 h1, h2 { text-align: center; }
@@ -28,19 +28,20 @@ body { padding-top: 70px; }
 <button onclick="show('stadt')">Stadt</button>
 <button onclick="show('inventar')">Inventar</button>
 <button onclick="show('ausruestung')">Ausrüstung</button>
+<button onclick="show('editor')">Charakter</button>
 </nav>
 
 <!-- Status -->
 <div id="status" class="section active">
 <h2>Status</h2>
 <div class="box">
+<p>Name: <span id="playerName"></span></p>
+<p>Klasse: <span id="playerClass"></span></p>
 <p>Level: <span id="level">1</span></p>
+<p>XP: <span id="xp">0</span> / <span id="xpNext">100</span></p>
 <p>Gold: <span id="gold">50</span></p>
 <p>Stein: <span id="stone">0</span></p>
 <p>Energie: <span id="energy">100</span> / <span id="maxEnergy">100</span></p>
-<p>Schokolade: <span id="schoko">1</span></p>
-<p>Bestienkristalle: <span id="kristalle">0</span></p>
-<p>Klasse: <span id="klasse">Krieger</span></p>
 </div>
 </div>
 
@@ -87,30 +88,48 @@ body { padding-top: 70px; }
 </div>
 </div>
 
-<!-- Modal -->
-<div id="modal" style="display:none;">
+<!-- Charaktereditor -->
+<div id="editor" class="section">
+<h2>Charakter erstellen / bearbeiten</h2>
 <div class="box">
-<h2>Item Details</h2>
-<div id="itemDetails"></div>
-<button onclick="equipItem()">Ausrüsten</button>
-<button onclick="unequipItem()">Ablegen</button>
-<button onclick="upgradeItem()">Verbessern</button>
-<button onclick="destroyItem()">Zerstören</button>
-<button onclick="closeModal()">Schließen</button>
+<label>Name:</label>
+<input id="nameInput" type="text" placeholder="Name eingeben">
+<br><br>
+<label>Klasse:</label>
+<select id="classSelect">
+  <option value="Krieger">Krieger</option>
+  <option value="Magier">Magier</option>
+  <option value="Jäger">Jäger</option>
+  <option value="Heiler">Heiler</option>
+  <option value="Assassine">Assassine</option>
+  <option value="Nekromant">Nekromant</option>
+</select>
+<br><br>
+<label>Avatar:</label>
+<select id="avatarSelect">
+  <option value="rot">Rot</option>
+  <option value="blau">Blau</option>
+  <option value="grün">Grün</option>
+  <option value="gelb">Gelb</option>
+</select>
+<br><br>
+<button onclick="createCharacter()">Speichern</button>
 </div>
 </div>
 
 <script>
 let game = {
+  name: "Held",
+  class: "Krieger",
+  avatar: "rot",
   level: 1,
+  xp: 0,
+  xpNext: 100,
   gold: 50,
   stone: 0,
-  schoko: 1,
-  kristalle: 0,
-  questActive: false,
-  maxEnergy: 100,
   energy: 100,
-  klasse: "Krieger",
+  maxEnergy: 100,
+  questActive: false,
   inventory: [],
   equipped: { head: null, body: null, weapon: null, ring: null, boots: null },
   buffs: []
@@ -118,20 +137,21 @@ let game = {
 
 let selectedItem = null;
 
-// UI functions
+// UI
 function show(id) {
   document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
 function updateUI() {
+  document.getElementById("playerName").innerText = game.name;
+  document.getElementById("playerClass").innerText = game.class;
   document.getElementById("gold").innerText = game.gold;
   document.getElementById("level").innerText = game.level;
+  document.getElementById("xp").innerText = game.xp;
+  document.getElementById("xpNext").innerText = game.xpNext;
   document.getElementById("energy").innerText = game.energy;
   document.getElementById("maxEnergy").innerText = game.maxEnergy;
-  document.getElementById("schoko").innerText = game.schoko;
-  document.getElementById("kristalle").innerText = game.kristalle;
-  document.getElementById("klasse").innerText = game.klasse;
   document.getElementById("stone").innerText = game.stone;
 }
 
@@ -162,34 +182,80 @@ function updateSlots() {
   }
 }
 
-function openItemModal(idx) {
-  selectedItem = idx;
-  let it = game.inventory[idx];
-  document.getElementById("itemDetails").innerHTML =
-    `<p><b>${it.name}</b> (Lvl ${it.level})</p>
-     <p>Rarity: ${it.rarity}</p>
-     <p>Bonus: +${it.bonus} STR</p>
-     <p>Klasse: ${it.classReq}</p>`;
-  document.getElementById("modal").style.display = "block";
-}
-
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-}
-
-// SAVE / LOAD
+// SAVE/LOAD
 function saveGame() {
   localStorage.setItem("comicKingdomSave", JSON.stringify(game));
 }
-
 function loadGame() {
   let saved = localStorage.getItem("comicKingdomSave");
-  if (saved) {
-    game = JSON.parse(saved);
-  }
+  if (saved) game = JSON.parse(saved);
 }
 
-// ITEM LEVEL REQUIREMENTS
+// CLASS CREATION
+function createCharacter() {
+  let name = document.getElementById("nameInput").value.trim();
+  let cls = document.getElementById("classSelect").value;
+  let avatar = document.getElementById("avatarSelect").value;
+
+  if (name.length < 2) {
+    alert("Name zu kurz!");
+    return;
+  }
+
+  game.name = name;
+  game.class = cls;
+  game.avatar = avatar;
+  saveGame();
+  updateUI();
+  alert("Charakter gespeichert!");
+}
+
+// XP & Level
+function gainXP(amount) {
+  game.xp += amount;
+  if (game.xp >= game.xpNext) {
+    game.level++;
+    game.xp -= game.xpNext;
+    game.xpNext = Math.floor(game.xpNext * 1.2);
+    game.maxEnergy += 10;
+    game.energy = game.maxEnergy;
+    alert("Level up!");
+  }
+  updateUI();
+  saveGame();
+}
+
+// QUESTS
+function acceptQuest() {
+  if (game.questActive) return;
+  game.questActive = true;
+  document.getElementById("questText").innerText = "Quest aktiv! Besiege 1 Monster.";
+  saveGame();
+}
+function finishQuest() {
+  if (!game.questActive) return alert("Keine aktive Quest!");
+  game.questActive = false;
+  gainXP(20);
+  game.gold += 20;
+  document.getElementById("questText").innerText = "Quest abgeschlossen!";
+  rewardItems("quest");
+  updateUI();
+  saveGame();
+}
+
+// DUNGEON
+function enterDungeon() {
+  if (game.energy < 20) return alert("Nicht genug Energie!");
+  game.energy -= 20;
+  gainXP(30);
+  game.gold += 30;
+  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen!";
+  rewardItems("dungeon");
+  updateUI();
+  saveGame();
+}
+
+// ITEMS
 const rarityRequirements = {
   "gewöhnlich": 1,
   "ungewöhnlich": 20,
@@ -200,78 +266,20 @@ const rarityRequirements = {
   "legendär": 1500
 };
 
-function removeInvalidItems() {
-  game.inventory = game.inventory.filter(item => {
-    const minLevel = rarityRequirements[item.rarity] || 1;
-    return game.level >= minLevel;
-  });
-  saveGame();
-  updateInventory();
-}
-
-// GAME functions
-function acceptQuest() {
-  if (game.questActive) return;
-  game.questActive = true;
-  document.getElementById("questText").innerText = "Quest aktiv! Besiege 1 Monster.";
-  saveGame();
-}
-
-function finishQuest() {
-  if (!game.questActive) {
-    alert("Keine aktive Quest.");
-    return;
-  }
-  game.questActive = false;
-  game.level++;
-  game.gold += 20;
-  document.getElementById("level").innerText = game.level;
-  document.getElementById("questText").innerText = "Quest abgeschlossen!";
-  rewardItems("quest");
-  removeInvalidItems();
-  updateUI();
-  saveGame();
-}
-
-function enterDungeon() {
-  document.getElementById("dungeonText").innerText = "Dungeon betreten... Boss kommt!";
-  rewardItems("dungeon");
-  removeInvalidItems();
-  updateUI();
-  saveGame();
-}
-
-function cityGuard() {
-  game.gold += 10;
-  updateUI();
-  saveGame();
-}
-
-function fillEnergyWithChocolate() {
-  if (game.schoko <= 0) return;
-  game.schoko--;
-  game.energy = game.maxEnergy;
-  updateUI();
-  saveGame();
-}
-
 function rewardItems(source) {
   let rarities = ["gewöhnlich", "ungewöhnlich", "selten", "episch", "mystisch", "himmlisch", "legendär"];
   let rarity = rarities[Math.floor(Math.random() * rarities.length)];
 
-  if (rarity === "ungewöhnlich" && game.level < 20) rarity = "gewöhnlich";
-  if (rarity === "selten" && game.level < 30) rarity = "gewöhnlich";
-  if (rarity === "episch" && game.level < 100) rarity = "selten";
-  if (rarity === "mystisch" && game.level < 500) rarity = "episch";
-  if (rarity === "himmlisch" && game.level < 700) rarity = "mystisch";
-  if (rarity === "legendär" && game.level < 1500) rarity = "himmlisch";
+  if (game.level < rarityRequirements[rarity]) {
+    rarity = "gewöhnlich";
+  }
 
   let item = {
     name: generateItemName(rarity),
     level: game.level,
     rarity: rarity,
     bonus: Math.floor(Math.random() * 10) + 1,
-    classReq: game.klasse
+    classReq: game.class
   };
 
   game.inventory.push(item);
@@ -288,53 +296,18 @@ function generateItemName(rarity) {
     "Ring der Macht",
     "Rüstung des Feuers",
     "Dolch des Schicksals",
-    "Bogen des Windes"
+    "Bogen des Windes",
+    "Skelettstab",
+    "Dunkelheitsumhang"
   ];
   return names[Math.floor(Math.random() * names.length)] + " (" + rarity + ")";
 }
 
-function equipItem() {
-  if (selectedItem === null) return;
-  let it = game.inventory[selectedItem];
-  if (it.classReq !== game.klasse) {
-    alert("Kannst du nicht ausrüsten: falsche Klasse.");
-    return;
-  }
-  game.equipped.weapon = it;
-  updateSlots();
-  closeModal();
-  saveGame();
-}
-
-function unequipItem() {
-  game.equipped.weapon = null;
-  updateSlots();
-  closeModal();
-  saveGame();
-}
-
-function upgradeItem() {
-  if (selectedItem === null) return;
-  game.inventory[selectedItem].bonus += 1;
-  alert("Item verbessert!");
-  updateInventory();
-  saveGame();
-}
-
-function destroyItem() {
-  if (selectedItem === null) return;
-  game.inventory.splice(selectedItem, 1);
-  selectedItem = null;
-  updateInventory();
-  closeModal();
-  saveGame();
-}
-
 // BUILDINGS
 const buildings = [
-  { name: "Steinbruch", desc: "Hier kannst du Stein abbauen und Ressourcen sammeln.", func: mineStone },
-  { name: "Festung", desc: "Hier kannst du Truppen trainieren und deine Verteidigung erhöhen.", func: openFortress },
-  { name: "Taverne", desc: "Hier kannst du Essen kaufen, Buffs erhalten und Quests starten.", func: openTavern }
+  { name: "Steinbruch", desc: "Hier kannst du Stein abbauen.", func: mineStone },
+  { name: "Festung", desc: "Hier kannst du deine Verteidigung ausbauen.", func: openFortress },
+  { name: "Taverne", desc: "Hier bekommst du Buffs.", func: openTavern }
 ];
 
 function renderBuildings() {
@@ -349,7 +322,6 @@ function renderBuildings() {
   });
 }
 
-// Steinbruch
 function mineStone() {
   let amount = 10 + game.level;
   game.stone += amount;
@@ -358,50 +330,34 @@ function mineStone() {
   saveGame();
 }
 
-// Festung
 function openFortress() {
   let cost = 50;
-  if (game.gold < cost) {
-    alert("Nicht genug Gold!");
-    return;
-  }
+  if (game.gold < cost) return alert("Nicht genug Gold!");
   game.gold -= cost;
   game.maxEnergy += 10;
-  alert("Festung ausgebaut! +10 Energie Max.");
+  game.energy = game.maxEnergy;
+  alert("Festung ausgebaut!");
   updateUI();
   saveGame();
 }
 
-// Taverne
 function openTavern() {
-  let choice = prompt("Taverne:\n1) Brot (+10 Energie)\n2) Steak (+20 Energie)\n3) Zaubertrank (+30 Energie)\n\nGib 1-3 ein:");
-  if (choice == "1") {
-    game.energy += 10;
-    if (game.energy > game.maxEnergy) game.energy = game.maxEnergy;
-    alert("Brot gegessen! +10 Energie");
-  } else if (choice == "2") {
-    game.energy += 20;
-    if (game.energy > game.maxEnergy) game.energy = game.maxEnergy;
-    alert("Steak gegessen! +20 Energie");
-  } else if (choice == "3") {
-    game.energy += 30;
-    if (game.energy > game.maxEnergy) game.energy = game.maxEnergy;
-    alert("Zaubertrank! +30 Energie");
-  } else {
-    alert("Ungültig!");
-  }
+  let choice = prompt("Taverne:\n1) Brot (+10 Energie)\n2) Steak (+20 Energie)\n3) Trank (+30 Energie)\n\nGib 1-3 ein:");
+  if (choice == "1") game.energy += 10;
+  else if (choice == "2") game.energy += 20;
+  else if (choice == "3") game.energy += 30;
+  if (game.energy > game.maxEnergy) game.energy = game.maxEnergy;
   updateUI();
   saveGame();
 }
 
 // INIT
 loadGame();
-removeInvalidItems();
 updateUI();
-updateSlots();
 updateInventory();
+updateSlots();
 renderBuildings();
 </script>
 
 </body>
-</html>
+</html></html>
