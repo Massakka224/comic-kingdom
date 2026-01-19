@@ -15,7 +15,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
 .item:hover { background: #eee; }
 nav { position: fixed; top: 0; left: 0; right: 0; background: #fff; padding: 10px; z-index: 10; }
 body { padding-top: 70px; }
-#modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 999; width: 90%; max-width: 400px; display:none; }
 </style>
 </head>
 <body>
@@ -41,6 +40,7 @@ body { padding-top: 70px; }
 <p>Schokolade: <span id="schoko">1</span></p>
 <p>Bestienkristalle: <span id="kristalle">0</span></p>
 <p>Klasse: <span id="klasse">Krieger</span></p>
+<button onclick="enableSound()">Sound aktivieren</button>
 </div>
 </div>
 
@@ -67,7 +67,11 @@ body { padding-top: 70px; }
 <div id="stadt" class="section">
 <h2>Stadt</h2>
 <div class="box">
-<p><b>Gebäude:</b></p>
+<button onclick="cityGuard()">Stadtwache (Gold)</button>
+<button onclick="fillEnergyWithChocolate()">Energie mit Schokolade auffüllen</button>
+
+<hr>
+<h3>Gebäude</h3>
 <div id="buildings"></div>
 </div>
 </div>
@@ -88,7 +92,7 @@ body { padding-top: 70px; }
 </div>
 
 <!-- Modal -->
-<div id="modal">
+<div id="modal" style="display:none;">
 <div class="box">
 <h2>Item Details</h2>
 <div id="itemDetails"></div>
@@ -112,54 +116,17 @@ let klasse = "Krieger";
 
 let inventory = [];
 let equipped = { head: null, body: null, weapon: null, ring: null, boots: null };
+
 let selectedItem = null;
 
-let soundUnlocked = false;
+let soundEnabled = false;
 
 // SOUNDS
 const soundLevelComplete = new Audio("sounds/game-level-completed.mp3");
 const soundBossWin = new Audio("sounds/boss-win.mp3");
 
-// BUILDINGS
-const buildings = [
-  { name: "Taverne", desc: "Hier bekommst du Essen und Buffs.", action: "buff" },
-  { name: "Schmiede", desc: "Hier kannst du Ausrüstung verbessern.", action: "upgrade" },
-  { name: "Markt", desc: "Hier kannst du Items kaufen.", action: "shop" },
-  { name: "Stall", desc: "Hier sammelst du Ressourcen.", action: "farm" },
-  { name: "Schatzkammer", desc: "Hier lagern deine Schätze.", action: "vault" }
-];
-
-// ------------------
-// LOCAL STORAGE
-// ------------------
-function saveGame() {
-  const data = {
-    level, gold, schoko, kristalle, questActive, maxEnergy, energy, klasse,
-    inventory, equipped
-  };
-  localStorage.setItem("comicKingdomSave", JSON.stringify(data));
-}
-
-function loadGame() {
-  const data = JSON.parse(localStorage.getItem("comicKingdomSave"));
-  if (!data) return;
-  level = data.level;
-  gold = data.gold;
-  schoko = data.schoko;
-  kristalle = data.kristalle;
-  questActive = data.questActive;
-  maxEnergy = data.maxEnergy;
-  energy = data.energy;
-  klasse = data.klasse;
-  inventory = data.inventory || [];
-  equipped = data.equipped || { head: null, body: null, weapon: null, ring: null, boots: null };
-}
-
-// ------------------
 // UI functions
-// ------------------
 function show(id) {
-  unlockSound();
   document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
@@ -206,25 +173,16 @@ function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-// ------------------
-// GAME functions
-// ------------------
-function unlockSound() {
-  if (soundUnlocked) return;
-  soundUnlocked = true;
-  soundLevelComplete.play().catch(()=>{}); // play once to unlock
-  soundLevelComplete.pause();
-  soundLevelComplete.currentTime = 0;
-  soundBossWin.play().catch(()=>{});
-  soundBossWin.pause();
-  soundBossWin.currentTime = 0;
+function enableSound() {
+  soundEnabled = true;
+  alert("Sound aktiviert!");
 }
 
+// GAME functions
 function acceptQuest() {
   if (questActive) return;
   questActive = true;
   document.getElementById("questText").innerText = "Quest aktiv! Besiege 1 Monster.";
-  saveGame();
 }
 
 function finishQuest() {
@@ -234,8 +192,7 @@ function finishQuest() {
   }
   questActive = false;
   level++;
-  unlockSound();
-  soundLevelComplete.play();
+  if (soundEnabled) soundLevelComplete.play();
   gold += 20;
   document.getElementById("level").innerText = level;
   document.getElementById("questText").innerText = "Quest abgeschlossen!";
@@ -245,8 +202,7 @@ function finishQuest() {
 
 function enterDungeon() {
   document.getElementById("dungeonText").innerText = "Dungeon betreten... Boss kommt!";
-  unlockSound();
-  soundBossWin.play();
+  if (soundEnabled) soundBossWin.play();
   rewardItems("dungeon");
   saveGame();
 }
@@ -267,6 +223,7 @@ function fillEnergyWithChocolate() {
 }
 
 function rewardItems(source) {
+  // simple item generator
   let rarities = ["gewöhnlich", "ungewöhnlich", "selten", "episch", "mystisch", "himmlisch", "legendär"];
   let rarity = rarities[Math.floor(Math.random() * rarities.length)];
 
@@ -288,7 +245,6 @@ function rewardItems(source) {
 
   inventory.push(item);
   updateInventory();
-  saveGame();
 }
 
 function generateItemName(rarity) {
@@ -342,20 +298,56 @@ function destroyItem() {
   saveGame();
 }
 
-// BUILDINGS UI
-function renderBuildings() {
-  let div = document.getElementById("buildings");
-  div.innerHTML = "";
-  buildings.forEach(b => {
-    let d = document.createElement("div");
-    d.className = "item";
-    d.innerText = `${b.name} - ${b.desc}`;
-    d.onclick = () => alert("Gebäude: " + b.name + "\n\n" + b.desc);
-    div.appendChild(d);
+// SAVE / LOAD
+function saveGame() {
+  const save = {
+    level, gold, schoko, kristalle, energy, klasse,
+    inventory, equipped
+  };
+  localStorage.setItem("comicKingdomSave", JSON.stringify(save));
+}
+
+function loadGame() {
+  const save = JSON.parse(localStorage.getItem("comicKingdomSave"));
+  if (!save) return;
+
+  level = save.level;
+  gold = save.gold;
+  schoko = save.schoko;
+  kristalle = save.kristalle;
+  energy = save.energy;
+  klasse = save.klasse;
+  inventory = save.inventory || [];
+  equipped = save.equipped || { head: null, body: null, weapon: null, ring: null, boots: null };
+}
+
+// BUILDINGS
+const buildingList = [
+  "Steinbruch",
+  "Festung",
+  "Taverne",
+  "Bäckerei",
+  "Schmiede",
+  "Sägewerk",
+  "Mühle",
+  "Markt",
+  "Bauernhof",
+  "Garten",
+  "Fischerhütte"
+];
+
+function showBuildings() {
+  let box = document.getElementById("buildings");
+  box.innerHTML = "";
+  buildingList.forEach(b => {
+    let btn = document.createElement("button");
+    btn.innerText = b;
+    btn.onclick = () => alert("Gebäude: " + b + "\n\nFunktion: Wird später implementiert.");
+    box.appendChild(btn);
   });
 }
 
-// Initial UI
+// INITIAL UI
 loadGame();
 document.getElementById("gold").innerText = gold;
 document.getElementById("level").innerText = level;
@@ -367,7 +359,7 @@ document.getElementById("klasse").innerText = klasse;
 
 updateSlots();
 updateInventory();
-renderBuildings();
+showBuildings();
 </script>
 
 </body>
