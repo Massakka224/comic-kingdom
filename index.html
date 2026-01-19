@@ -3,451 +3,153 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 8</title>
+<title>Comic Kingdom – Version 8</title>
+
 <style>
-body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
-h1, h2 { text-align: center; }
-button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
-.section { display: none; }
-.section.active { display: block; }
-.box { background: white; padding: 1em; margin: 1em 0; border-radius: 10px; }
-.item { border: 1px solid #ddd; padding: 10px; margin: 5px 0; cursor: pointer; }
-.item:hover { background: #eee; }
-.building { border: 1px solid #ddd; padding: 10px; margin: 5px 0; cursor: pointer; }
-.building:hover { background: #eee; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2 {
+  text-align: center;
+}
+
+nav {
+  display: flex;
+  justify-content: space-around;
+  background: #333;
+}
+
+nav button {
+  flex: 1;
+  padding: 1em;
+  border: none;
+  background: #333;
+  color: white;
+  font-size: 1em;
+}
+
+nav button:hover {
+  background: #555;
+}
+
+.section {
+  display: none;
+  padding: 1em;
+}
+
+.section.active {
+  display: block;
+}
+
+.box {
+  background: white;
+  padding: 1em;
+  margin: 1em 0;
+  border-radius: 10px;
+}
+
+.building {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 1em;
+  margin-bottom: 1em;
+}
+
+.building button {
+  margin-top: 0.5em;
+  width: 100%;
+}
 </style>
 </head>
+
 <body>
 
 <h1>Comic Kingdom</h1>
 
 <nav>
-<button onclick="show('klassenauswahl')">Charakter wählen</button>
-<button onclick="show('status')">Status</button>
-<button onclick="show('stadt')">Stadt</button>
-<button onclick="show('quests')">Quests</button>
-<button onclick="show('dungeon')">Dungeon</button>
-<button onclick="show('arena')">Arena</button>
-<button onclick="show('inventar')">Inventar</button>
-<button onclick="show('ausruestung')">Ausrüstung</button>
+  <button onclick="show('status')">Status</button>
+  <button onclick="show('stadt')">Stadt</button>
 </nav>
 
-<div id="klassenauswahl" class="section active">
-  <h2>Charakter erstellen</h2>
+<!-- STATUS -->
+<div id="status" class="section active">
+  <h2>Held</h2>
   <div class="box">
-    <button onclick="createClass('Krieger')">Krieger</button>
-    <button onclick="createClass('Berserker')">Berserker</button>
-    <button onclick="createClass('Zauberer')">Zauberer</button>
-    <button onclick="createClass('Nekromant')">Nekromant</button>
+    <p><b>Level:</b> 1</p>
+    <p><b>Gold:</b> 50</p>
+    <p><b>Energie:</b> 100 / 100</p>
+    <p><b>Klasse:</b> Krieger</p>
   </div>
 </div>
 
-<div id="status" class="section">
-  <h2>Status</h2>
-  <div class="box">
-    <p>Level: <span id="level">1</span></p>
-    <p>Gold: <span id="gold">50</span></p>
-    <p>Energie: <span id="energy">100</span> / <span id="maxEnergy">100</span></p>
-    <p>Schokolade: <span id="schoko">1</span></p>
-    <p>Bestienkristalle: <span id="kristalle">0</span></p>
-    <p>Klasse: <span id="klasse">-</span></p>
-  </div>
-</div>
-
+<!-- STADT -->
 <div id="stadt" class="section">
   <h2>Stadt</h2>
-  <div class="box">
-    <p>Tippe auf ein Gebäude, um es zu öffnen:</p>
-    <div id="buildings"></div>
-  </div>
-</div>
 
-<div id="quests" class="section">
-  <h2>Quests</h2>
-  <div class="box">
-    <button onclick="acceptQuest()">Quest annehmen</button>
-    <button onclick="finishQuest()">Quest abschließen</button>
-    <p id="questText">Keine aktive Quest</p>
+  <div class="building">
+    <h3>🏰 Festung</h3>
+    <p>Verbessert deine Grundwerte wie Leben, Angriff und Verteidigung.</p>
+    <p>Status: Stufe 1</p>
+    <button onclick="info('Festung')">Öffnen</button>
   </div>
-</div>
 
-<div id="dungeon" class="section">
-  <h2>Dungeon</h2>
-  <div class="box">
-    <button onclick="enterDungeon()">Dungeon betreten</button>
-    <p id="dungeonText">Keine Aktion</p>
+  <div class="building">
+    <h3>🍺 Taverne</h3>
+    <p>Hier nimmst du Quests an, isst Essen und regenerierst Energie.</p>
+    <p>Status: Stufe 1</p>
+    <button onclick="info('Taverne')">Öffnen</button>
   </div>
-</div>
 
-<div id="arena" class="section">
-  <h2>Arena</h2>
-  <div class="box">
-    <button onclick="fightArena()">Kampf starten</button>
-    <p id="arenaText">Keine Aktion</p>
+  <div class="building">
+    <h3>⚒️ Schmiede</h3>
+    <p>Verbessere Waffen und Rüstungen.</p>
+    <p>Status: Noch im Bau</p>
+    <button onclick="info('Schmiede')">Öffnen</button>
   </div>
-</div>
 
-<div id="inventar" class="section">
-  <h2>Inventar</h2>
-  <div class="box" id="inventoryList">Keine Items</div>
-</div>
-
-<div id="ausruestung" class="section">
-  <h2>Ausrüstung</h2>
-  <div class="box">
-    <p><b>Slots:</b></p>
-    <div id="slots"></div>
+  <div class="building">
+    <h3>🧙 Magierturm</h3>
+    <p>Verzaubere Ausrüstung und erhalte Elementboni.</p>
+    <p>Status: Noch im Bau</p>
+    <button onclick="info('Magierturm')">Öffnen</button>
   </div>
-</div>
 
-<div id="modal" style="display:none;">
-  <div class="box">
-    <h2>Item Details</h2>
-    <div id="itemDetails"></div>
-    <button onclick="equipItem()">Ausrüsten</button>
-    <button onclick="unequipItem()">Ablegen</button>
-    <button onclick="upgradeItem()">Verbessern</button>
-    <button onclick="destroyItem()">Zerstören</button>
-    <button onclick="closeModal()">Schließen</button>
+  <div class="building">
+    <h3>🌾 Felder</h3>
+    <p>Baue Pflanzen an, um Buffs und Materialien zu erhalten.</p>
+    <p>Status: Noch im Bau</p>
+    <button onclick="info('Felder')">Öffnen</button>
   </div>
+
+  <div class="building">
+    <h3>🏟️ Arena</h3>
+    <p>Miss dich mit anderen Helden und verdiene Ruhm.</p>
+    <p>Status: Gesperrt</p>
+    <button onclick="info('Arena')">Öffnen</button>
+  </div>
+
+  <div class="building">
+    <h3>🗝️ Dungeon-Zentrale</h3>
+    <p>Verwalte Dungeons, Schlüssel und Bosskämpfe.</p>
+    <p>Status: Gesperrt</p>
+    <button onclick="info('Dungeon')">Öffnen</button>
+  </div>
+
 </div>
 
 <script>
-let level = 1;
-let gold = 50;
-let schoko = 1;
-let kristalle = 0;
-let questActive = false;
-let maxEnergy = 100;
-let energy = maxEnergy;
-let klasse = "";
-let inventory = [];
-let equipment = {
-  weapon: null,
-  armor: null,
-  helmet: null,
-  boots: null,
-  gloves: null,
-  ring: null,
-  amulet: null
-};
-let currentItem = null;
-
-let buildingsData = [
-  { id: "farm", name: "Farm", lvl: 1, desc: "Produziert Ressourcen.", action: "collectFarm" },
-  { id: "stall", name: "Stall", lvl: 1, desc: "Züchtet Tiere.", action: "collectAnimals" },
-  { id: "wood", name: "Holzfäller", lvl: 1, desc: "Sammelt Holz.", action: "collectWood" },
-  { id: "stone", name: "Steinbruch", lvl: 1, desc: "Sammelt Stein.", action: "collectStone" },
-  { id: "clay", name: "Lehmgrube", lvl: 1, desc: "Sammelt Lehm.", action: "collectClay" },
-  { id: "bakery", name: "Bäckerei", lvl: 1, desc: "Stellt Nahrung her.", action: "bakeFood" },
-  { id: "tavern", name: "Taverne", lvl: 1, desc: "Kauft Buffs & Essen.", action: "openTavern" },
-  { id: "questhouse", name: "Questhaus", lvl: 1, desc: "Nimmt Quests an.", action: "openQuesthouse" },
-  { id: "arena", name: "Arena", lvl: 1, desc: "Kämpfe gegen andere Spieler.", action: "openArena" },
-  { id: "dungeon", name: "Dungeon", lvl: 1, desc: "Betritt Dungeons.", action: "openDungeon" },
-  { id: "market", name: "Marktplatz", lvl: 1, desc: "Handel & Verkauf.", action: "openMarket" },
-  { id: "training", name: "Trainingsplatz", lvl: 1, desc: "Trainiert deine Werte.", action: "openTraining" }
-];
-
-function saveGame() {
-  const data = {
-    level, gold, schoko, kristalle, questActive, maxEnergy, energy, klasse,
-    inventory, equipment, buildingsData
-  };
-  localStorage.setItem("comicKingdomSave", JSON.stringify(data));
-}
-
-function loadGame() {
-  const data = JSON.parse(localStorage.getItem("comicKingdomSave"));
-  if (data) {
-    level = data.level;
-    gold = data.gold;
-    schoko = data.schoko;
-    kristalle = data.kristalle;
-    questActive = data.questActive;
-    maxEnergy = data.maxEnergy;
-    energy = data.energy;
-    klasse = data.klasse;
-    inventory = data.inventory;
-    equipment = data.equipment;
-    buildingsData = data.buildingsData;
-    updateUI();
-  }
-}
-
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if (id === "stadt") renderBuildings();
-  updateUI();
 }
 
-function updateUI() {
-  document.getElementById("level").innerText = level;
-  document.getElementById("gold").innerText = gold;
-  document.getElementById("energy").innerText = energy;
-  document.getElementById("maxEnergy").innerText = maxEnergy;
-  document.getElementById("schoko").innerText = schoko;
-  document.getElementById("kristalle").innerText = kristalle;
-  document.getElementById("klasse").innerText = klasse || "-";
-  renderInventory();
-  renderEquipment();
+function info(name) {
+  alert(name + " ist in dieser Version noch in Entwicklung.");
 }
-
-function createClass(c) {
-  klasse = c;
-  level = 1;
-  gold = 50;
-  energy = maxEnergy;
-  inventory = [];
-  equipment = { weapon: null, armor: null, helmet: null, boots: null, gloves: null, ring: null, amulet: null };
-  questActive = false;
-  saveGame();
-  show("status");
-}
-
-function renderBuildings() {
-  const el = document.getElementById("buildings");
-  el.innerHTML = "";
-  buildingsData.forEach(b => {
-    const div = document.createElement("div");
-    div.className = "building";
-    div.innerHTML = `<b>${b.name}</b> (Lvl ${b.lvl})<br><small>${b.desc}</small>`;
-    div.onclick = () => openBuilding(b.id);
-    el.appendChild(div);
-  });
-}
-
-function openBuilding(id) {
-  const b = buildingsData.find(x => x.id === id);
-  if (!b) return;
-
-  if (b.action === "collectFarm") collectFarm();
-  if (b.action === "collectAnimals") collectAnimals();
-  if (b.action === "collectWood") collectWood();
-  if (b.action === "collectStone") collectStone();
-  if (b.action === "collectClay") collectClay();
-  if (b.action === "bakeFood") bakeFood();
-  if (b.action === "openTavern") openTavern();
-  if (b.action === "openQuesthouse") show("quests");
-  if (b.action === "openArena") show("arena");
-  if (b.action === "openDungeon") show("dungeon");
-  if (b.action === "openMarket") market();
-  if (b.action === "openTraining") training();
-}
-
-function collectFarm() {
-  gold += 5;
-  energy -= 5;
-  alert("Farm: Du bekommst 5 Gold!");
-  saveGame();
-  updateUI();
-}
-function collectAnimals() {
-  gold += 8;
-  energy -= 8;
-  alert("Stall: Du bekommst 8 Gold!");
-  saveGame();
-  updateUI();
-}
-function collectWood() {
-  gold += 6;
-  energy -= 6;
-  alert("Holzfäller: Du bekommst 6 Gold!");
-  saveGame();
-  updateUI();
-}
-function collectStone() {
-  gold += 7;
-  energy -= 7;
-  alert("Steinbruch: Du bekommst 7 Gold!");
-  saveGame();
-  updateUI();
-}
-function collectClay() {
-  gold += 6;
-  energy -= 6;
-  alert("Lehmgrube: Du bekommst 6 Gold!");
-  saveGame();
-  updateUI();
-}
-function bakeFood() {
-  schoko += 1;
-  energy -= 10;
-  alert("Bäckerei: Du bekommst 1 Schokolade!");
-  saveGame();
-  updateUI();
-}
-
-function openTavern() {
-  const choice = prompt("Taverne: Was möchtest du essen? (1=Steak +10 Energie, 2=Trank +20 Energie, 3=Kuchen +5 Energie)");
-  if (choice === "1") { energy = Math.min(maxEnergy, energy + 10); gold -= 10; }
-  if (choice === "2") { energy = Math.min(maxEnergy, energy + 20); gold -= 20; }
-  if (choice === "3") { energy = Math.min(maxEnergy, energy + 5); gold -= 5; }
-  saveGame();
-  updateUI();
-}
-
-function acceptQuest() {
-  if (questActive) return alert("Du hast bereits eine Quest.");
-  questActive = true;
-  document.getElementById("questText").innerText = "Quest läuft… Monster bekämpfen.";
-  saveGame();
-  updateUI();
-}
-
-function finishQuest() {
-  if (!questActive) return alert("Keine aktive Quest.");
-  questActive = false;
-  level++;
-  gold += 20;
-  energy -= 15;
-  addItem(randomItem());
-  document.getElementById("questText").innerText = "Quest abgeschlossen!";
-  saveGame();
-  updateUI();
-}
-
-function enterDungeon() {
-  if (energy < 20) return alert("Nicht genug Energie.");
-  energy -= 20;
-  gold += 30;
-  level++;
-  addItem(randomItem());
-  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen!";
-  saveGame();
-  updateUI();
-}
-
-function fightArena() {
-  if (energy < 10) return alert("Nicht genug Energie.");
-  energy -= 10;
-  const win = Math.random() > 0.5;
-  if (win) {
-    gold += 15;
-    addItem(randomItem());
-    document.getElementById("arenaText").innerText = "Du hast gewonnen!";
-  } else {
-    document.getElementById("arenaText").innerText = "Du hast verloren!";
-  }
-  saveGame();
-  updateUI();
-}
-
-function market() {
-  const choice = prompt("Marktplatz: Kaufen (1=Schokolade +1 für 20 Gold)");
-  if (choice === "1" && gold >= 20) {
-    gold -= 20;
-    schoko += 1;
-  }
-  saveGame();
-  updateUI();
-}
-
-function training() {
-  if (gold < 10) return alert("Nicht genug Gold.");
-  gold -= 10;
-  level++;
-  alert("Training erfolgreich! Level +1");
-  saveGame();
-  updateUI();
-}
-
-function addItem(item) {
-  inventory.push(item);
-}
-
-function randomItem() {
-  const rarities = ["gewöhnlich","ungewöhnlich","selten","episch","legendär","mystisch","himmlisch"];
-  const rarity = rarities[Math.floor(Math.random() * rarities.length)];
-  return {
-    id: Date.now(),
-    name: `${rarity.toUpperCase()} Item #${Math.floor(Math.random()*999)}`,
-    rarity,
-    lvlReq: rarity === "gewöhnlich" ? 1 : rarity === "ungewöhnlich" ? 20 : rarity === "selten" ? 30 : rarity === "episch" ? 100 : rarity === "legendär" ? 150 : rarity === "mystisch" ? 500 : 700,
-    atk: Math.floor(Math.random()*10)+1,
-    def: Math.floor(Math.random()*10)+1,
-    class: ["Krieger","Berserker","Zauberer","Nekromant"][Math.floor(Math.random()*4)]
-  };
-}
-
-function renderInventory() {
-  const el = document.getElementById("inventoryList");
-  if (inventory.length === 0) { el.innerHTML = "Keine Items"; return; }
-  el.innerHTML = "";
-  inventory.forEach(it => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `<b>${it.name}</b><br>Rarität: ${it.rarity} | Level: ${it.lvlReq} | Klasse: ${it.class}`;
-    div.onclick = () => openItem(it.id);
-    el.appendChild(div);
-  });
-}
-
-function renderEquipment() {
-  const el = document.getElementById("slots");
-  el.innerHTML = "";
-  for (let slot in equipment) {
-    const it = equipment[slot];
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerHTML = `<b>${slot}</b>: ${it ? it.name : "leer"}`;
-    el.appendChild(div);
-  }
-}
-
-function openItem(id) {
-  currentItem = inventory.find(i => i.id === id);
-  if (!currentItem) return;
-  document.getElementById("itemDetails").innerHTML = `
-    <b>${currentItem.name}</b><br>
-    Rarität: ${currentItem.rarity}<br>
-    Level: ${currentItem.lvlReq}<br>
-    ATK: ${currentItem.atk}<br>
-    DEF: ${currentItem.def}<br>
-    Klasse: ${currentItem.class}
-  `;
-  document.getElementById("modal").style.display = "block";
-}
-
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-}
-
-function equipItem() {
-  if (!currentItem) return;
-  if (currentItem.class !== klasse) return alert("Diese Klasse kann das nicht tragen.");
-  equipment.weapon = currentItem;
-  saveGame();
-  updateUI();
-  closeModal();
-}
-
-function unequipItem() {
-  equipment.weapon = null;
-  saveGame();
-  updateUI();
-  closeModal();
-}
-
-function upgradeItem() {
-  if (!currentItem) return;
-  currentItem.atk += 1;
-  currentItem.def += 1;
-  saveGame();
-  updateUI();
-}
-
-function destroyItem() {
-  if (!currentItem) return;
-  inventory = inventory.filter(i => i.id !== currentItem.id);
-  currentItem = null;
-  saveGame();
-  updateUI();
-  closeModal();
-}
-
-loadGame();
-updateUI();
 </script>
 
 </body>
