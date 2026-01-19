@@ -113,11 +113,35 @@ let inventory = [];
 let equipped = { head: null, body: null, weapon: null, ring: null, boots: null };
 let selectedItem = null;
 
-// SOUNDS (Richtig verlinkt im Projekt-Ordner)
+// SOUNDS
 const soundLevelComplete = new Audio("sounds/level_complete.mp3");
 const soundBossWin = new Audio("sounds/boss_win.mp3");
 
-// UI functions
+// ---- SAVE SYSTEM (LocalStorage) ----
+function saveGame() {
+  const save = {
+    level, gold, schoko, kristalle, energy, maxEnergy, klasse,
+    inventory, equipped, questActive
+  };
+  localStorage.setItem("comicKingdomSave", JSON.stringify(save));
+}
+
+function loadGame() {
+  const save = JSON.parse(localStorage.getItem("comicKingdomSave"));
+  if (!save) return;
+  level = save.level;
+  gold = save.gold;
+  schoko = save.schoko;
+  kristalle = save.kristalle;
+  energy = save.energy;
+  maxEnergy = save.maxEnergy;
+  klasse = save.klasse;
+  inventory = save.inventory;
+  equipped = save.equipped;
+  questActive = save.questActive;
+}
+
+// ---- UI ----
 function show(id) {
   document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
   document.getElementById(id).classList.add("active");
@@ -165,11 +189,12 @@ function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-// GAME functions
+// ---- GAME ----
 function acceptQuest() {
   if (questActive) return;
   questActive = true;
   document.getElementById("questText").innerText = "Quest aktiv! Besiege 1 Monster.";
+  saveGame();
 }
 
 function finishQuest() {
@@ -184,17 +209,20 @@ function finishQuest() {
   document.getElementById("level").innerText = level;
   document.getElementById("questText").innerText = "Quest abgeschlossen!";
   rewardItems("quest");
+  saveGame();
 }
 
 function enterDungeon() {
   document.getElementById("dungeonText").innerText = "Dungeon betreten... Boss kommt!";
-  soundBossWin.play(); // Boss win sound
+  soundBossWin.play();
   rewardItems("dungeon");
+  saveGame();
 }
 
 function cityGuard() {
   gold += 10;
   document.getElementById("gold").innerText = gold;
+  saveGame();
 }
 
 function fillEnergyWithChocolate() {
@@ -203,6 +231,7 @@ function fillEnergyWithChocolate() {
   energy = maxEnergy;
   document.getElementById("energy").innerText = energy;
   document.getElementById("schoko").innerText = schoko;
+  saveGame();
 }
 
 function rewardItems(source) {
@@ -226,6 +255,7 @@ function rewardItems(source) {
 
   inventory.push(item);
   updateInventory();
+  saveGame();
 }
 
 function generateItemName(rarity) {
@@ -251,12 +281,14 @@ function equipItem() {
   }
   equipped.weapon = it;
   updateSlots();
+  saveGame();
   closeModal();
 }
 
 function unequipItem() {
   equipped.weapon = null;
   updateSlots();
+  saveGame();
   closeModal();
 }
 
@@ -265,6 +297,7 @@ function upgradeItem() {
   inventory[selectedItem].bonus += 1;
   alert("Item verbessert!");
   updateInventory();
+  saveGame();
 }
 
 function destroyItem() {
@@ -272,10 +305,12 @@ function destroyItem() {
   inventory.splice(selectedItem, 1);
   selectedItem = null;
   updateInventory();
+  saveGame();
   closeModal();
 }
 
-// Initial UI
+// Initial load
+loadGame();
 document.getElementById("gold").innerText = gold;
 document.getElementById("level").innerText = level;
 document.getElementById("energy").innerText = energy;
@@ -283,10 +318,10 @@ document.getElementById("maxEnergy").innerText = maxEnergy;
 document.getElementById("schoko").innerText = schoko;
 document.getElementById("kristalle").innerText = kristalle;
 document.getElementById("klasse").innerText = klasse;
-
 updateSlots();
 updateInventory();
 </script>
 
 </body>
+</html>>
 </html>
