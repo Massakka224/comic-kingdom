@@ -3,35 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 9</title>
+<title>Comic Kingdom – Version 10</title>
 
 <style>
 body {
   font-family: Arial, sans-serif;
   background: #f2f2f2;
   margin: 0;
-  padding: 0;
 }
 
 header {
-  background: #333;
+  background: #2e2e2e;
   color: white;
-  padding: 1em;
   text-align: center;
+  padding: 1em;
 }
 
 nav {
-  background: #444;
-  padding: 0.5em;
   display: flex;
-  flex-wrap: wrap;
   gap: 0.5em;
+  padding: 0.5em;
+  background: #444;
 }
 
 nav button {
   flex: 1;
   padding: 0.8em;
-  font-size: 1em;
   border: none;
   background: #666;
   color: white;
@@ -58,9 +55,9 @@ nav button:hover {
   border-radius: 10px;
 }
 
-.quest, .food {
+.building {
   border: 1px solid #ccc;
-  padding: 0.5em;
+  padding: 0.8em;
   margin: 0.5em 0;
 }
 </style>
@@ -70,7 +67,7 @@ nav button:hover {
 
 <header>
   <h1>Comic Kingdom</h1>
-  <p>Version 9 – Taverne</p>
+  <p>Version 10 – Festung</p>
 </header>
 
 <nav>
@@ -85,7 +82,7 @@ nav button:hover {
     <p>Level: <b><span id="level">1</span></b></p>
     <p>Gold: <b><span id="gold">50</span></b></p>
     <p>Energie: <b><span id="energy">100</span></b> / 100</p>
-    <p>Aktiver Buff: <b><span id="buff">Keiner</span></b></p>
+    <p>Festungsbonus: <b><span id="bonus">0%</span></b></p>
   </div>
 </div>
 
@@ -94,64 +91,52 @@ nav button:hover {
   <div class="box">
     <h2>Quests</h2>
 
-    <div class="quest">
-      <p>Kleine Lieferung</p>
-      <button onclick="startQuest(10, 5)">Starten (10 Energie)</button>
-    </div>
-
-    <div class="quest">
-      <p>Monster vertreiben</p>
-      <button onclick="startQuest(20, 12)">Starten (20 Energie)</button>
-    </div>
-
-    <div class="quest">
-      <p>Gefährliche Reise</p>
-      <button onclick="startQuest(30, 20)">Starten (30 Energie)</button>
-    </div>
+    <button onclick="quest(10,5)">Kleine Quest (10 Energie)</button>
+    <button onclick="quest(20,12)">Mittlere Quest (20 Energie)</button>
+    <button onclick="quest(30,20)">Große Quest (30 Energie)</button>
 
     <p id="questText"></p>
-  </div>
-
-  <div class="box">
-    <h2>Essen & Buffs</h2>
-
-    <div class="food">
-      <p>🍗 Gebratenes Fleisch</p>
-      <button onclick="eat('Stärke +10%', 30)">Essen (30 Gold)</button>
-    </div>
-
-    <div class="food">
-      <p>🥗 Frischer Salat</p>
-      <button onclick="eat('Energie +20', 20)">Essen (20 Gold)</button>
-    </div>
-
-    <div class="food">
-      <p>🍺 Starkes Bier</p>
-      <button onclick="eat('Quest-Belohnung +20%', 40)">Essen (40 Gold)</button>
-    </div>
   </div>
 </div>
 
 <!-- STADT -->
 <div id="stadt" class="section">
+
+  <!-- FESTUNG -->
   <div class="box">
-    <h2>Stadt</h2>
-    <p>Weitere Gebäude folgen in Version 10.</p>
+    <h2>🏰 Festung</h2>
+    <p>
+      Die Festung ist das Herz deines Reiches.<br>
+      Jeder Ausbau erhöht deine Gold- und Quest-Belohnungen.
+    </p>
+
+    <p>Level: <b><span id="fortressLevel">1</span></b></p>
+    <p>Bonus: <b><span id="fortressBonus">+0%</span></b></p>
+    <p>Nächster Ausbau kostet: <b><span id="fortressCost">100</span> Gold</b></p>
+
+    <button onclick="upgradeFortress()">Festung ausbauen</button>
+  </div>
+
+  <!-- KOMMENDE GEBÄUDE -->
+  <div class="box">
+    <h2>Weitere Gebäude</h2>
     <ul>
-      <li>Taverne ✅</li>
-      <li>Festung ⏳</li>
-      <li>Schmiede ⏳</li>
-      <li>Markt ⏳</li>
-      <li>Farm ⏳</li>
+      <li>⚒ Schmiede – Item verbessern (kommt)</li>
+      <li>🏪 Markt – Handel (kommt)</li>
+      <li>🌾 Farm – Ressourcen (kommt)</li>
+      <li>🏟 Arena – PvP (kommt)</li>
     </ul>
   </div>
+
 </div>
 
 <script>
 let level = 1;
 let gold = 50;
 let energy = 100;
-let buff = "Keiner";
+
+let fortressLevel = 1;
+let fortressBonus = 0;
 
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -162,37 +147,44 @@ function updateUI() {
   document.getElementById("level").innerText = level;
   document.getElementById("gold").innerText = gold;
   document.getElementById("energy").innerText = energy;
-  document.getElementById("buff").innerText = buff;
+
+  document.getElementById("fortressLevel").innerText = fortressLevel;
+  document.getElementById("fortressBonus").innerText = "+" + fortressBonus + "%";
+  document.getElementById("bonus").innerText = fortressBonus + "%";
+
+  document.getElementById("fortressCost").innerText =
+    fortressLevel * 100;
 }
 
-function startQuest(cost, reward) {
+function quest(cost, reward) {
   if (energy < cost) {
     document.getElementById("questText").innerText = "Nicht genug Energie!";
     return;
   }
 
   energy -= cost;
-  gold += reward;
+
+  let bonusGold = Math.floor(reward * (fortressBonus / 100));
+  gold += reward + bonusGold;
   level += 1;
 
   document.getElementById("questText").innerText =
-    "Quest abgeschlossen! +" + reward + " Gold";
+    "Quest abgeschlossen! +" + (reward + bonusGold) + " Gold";
 
   updateUI();
 }
 
-function eat(buffName, cost) {
+function upgradeFortress() {
+  let cost = fortressLevel * 100;
+
   if (gold < cost) {
     alert("Nicht genug Gold!");
     return;
   }
 
   gold -= cost;
-  buff = buffName;
-
-  if (buffName === "Energie +20") {
-    energy = Math.min(energy + 20, 100);
-  }
+  fortressLevel += 1;
+  fortressBonus += 2;
 
   updateUI();
 }
