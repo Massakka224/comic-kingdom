@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 8</title>
+<title>Comic Kingdom – Version 9</title>
 
 <style>
 body {
@@ -13,27 +13,33 @@ body {
   padding: 0;
 }
 
-h1, h2 {
+header {
+  background: #333;
+  color: white;
+  padding: 1em;
   text-align: center;
 }
 
 nav {
+  background: #444;
+  padding: 0.5em;
   display: flex;
-  justify-content: space-around;
-  background: #333;
+  flex-wrap: wrap;
+  gap: 0.5em;
 }
 
 nav button {
   flex: 1;
-  padding: 1em;
-  border: none;
-  background: #333;
-  color: white;
+  padding: 0.8em;
   font-size: 1em;
+  border: none;
+  background: #666;
+  color: white;
+  border-radius: 6px;
 }
 
 nav button:hover {
-  background: #555;
+  background: #888;
 }
 
 .section {
@@ -48,108 +54,150 @@ nav button:hover {
 .box {
   background: white;
   padding: 1em;
-  margin: 1em 0;
+  margin-bottom: 1em;
   border-radius: 10px;
 }
 
-.building {
+.quest, .food {
   border: 1px solid #ccc;
-  border-radius: 8px;
-  padding: 1em;
-  margin-bottom: 1em;
-}
-
-.building button {
-  margin-top: 0.5em;
-  width: 100%;
+  padding: 0.5em;
+  margin: 0.5em 0;
 }
 </style>
 </head>
 
 <body>
 
-<h1>Comic Kingdom</h1>
+<header>
+  <h1>Comic Kingdom</h1>
+  <p>Version 9 – Taverne</p>
+</header>
 
 <nav>
   <button onclick="show('status')">Status</button>
+  <button onclick="show('taverne')">Taverne</button>
   <button onclick="show('stadt')">Stadt</button>
 </nav>
 
 <!-- STATUS -->
 <div id="status" class="section active">
-  <h2>Held</h2>
   <div class="box">
-    <p><b>Level:</b> 1</p>
-    <p><b>Gold:</b> 50</p>
-    <p><b>Energie:</b> 100 / 100</p>
-    <p><b>Klasse:</b> Krieger</p>
+    <p>Level: <b><span id="level">1</span></b></p>
+    <p>Gold: <b><span id="gold">50</span></b></p>
+    <p>Energie: <b><span id="energy">100</span></b> / 100</p>
+    <p>Aktiver Buff: <b><span id="buff">Keiner</span></b></p>
+  </div>
+</div>
+
+<!-- TAVERNE -->
+<div id="taverne" class="section">
+  <div class="box">
+    <h2>Quests</h2>
+
+    <div class="quest">
+      <p>Kleine Lieferung</p>
+      <button onclick="startQuest(10, 5)">Starten (10 Energie)</button>
+    </div>
+
+    <div class="quest">
+      <p>Monster vertreiben</p>
+      <button onclick="startQuest(20, 12)">Starten (20 Energie)</button>
+    </div>
+
+    <div class="quest">
+      <p>Gefährliche Reise</p>
+      <button onclick="startQuest(30, 20)">Starten (30 Energie)</button>
+    </div>
+
+    <p id="questText"></p>
+  </div>
+
+  <div class="box">
+    <h2>Essen & Buffs</h2>
+
+    <div class="food">
+      <p>🍗 Gebratenes Fleisch</p>
+      <button onclick="eat('Stärke +10%', 30)">Essen (30 Gold)</button>
+    </div>
+
+    <div class="food">
+      <p>🥗 Frischer Salat</p>
+      <button onclick="eat('Energie +20', 20)">Essen (20 Gold)</button>
+    </div>
+
+    <div class="food">
+      <p>🍺 Starkes Bier</p>
+      <button onclick="eat('Quest-Belohnung +20%', 40)">Essen (40 Gold)</button>
+    </div>
   </div>
 </div>
 
 <!-- STADT -->
 <div id="stadt" class="section">
-  <h2>Stadt</h2>
-
-  <div class="building">
-    <h3>🏰 Festung</h3>
-    <p>Verbessert deine Grundwerte wie Leben, Angriff und Verteidigung.</p>
-    <p>Status: Stufe 1</p>
-    <button onclick="info('Festung')">Öffnen</button>
+  <div class="box">
+    <h2>Stadt</h2>
+    <p>Weitere Gebäude folgen in Version 10.</p>
+    <ul>
+      <li>Taverne ✅</li>
+      <li>Festung ⏳</li>
+      <li>Schmiede ⏳</li>
+      <li>Markt ⏳</li>
+      <li>Farm ⏳</li>
+    </ul>
   </div>
-
-  <div class="building">
-    <h3>🍺 Taverne</h3>
-    <p>Hier nimmst du Quests an, isst Essen und regenerierst Energie.</p>
-    <p>Status: Stufe 1</p>
-    <button onclick="info('Taverne')">Öffnen</button>
-  </div>
-
-  <div class="building">
-    <h3>⚒️ Schmiede</h3>
-    <p>Verbessere Waffen und Rüstungen.</p>
-    <p>Status: Noch im Bau</p>
-    <button onclick="info('Schmiede')">Öffnen</button>
-  </div>
-
-  <div class="building">
-    <h3>🧙 Magierturm</h3>
-    <p>Verzaubere Ausrüstung und erhalte Elementboni.</p>
-    <p>Status: Noch im Bau</p>
-    <button onclick="info('Magierturm')">Öffnen</button>
-  </div>
-
-  <div class="building">
-    <h3>🌾 Felder</h3>
-    <p>Baue Pflanzen an, um Buffs und Materialien zu erhalten.</p>
-    <p>Status: Noch im Bau</p>
-    <button onclick="info('Felder')">Öffnen</button>
-  </div>
-
-  <div class="building">
-    <h3>🏟️ Arena</h3>
-    <p>Miss dich mit anderen Helden und verdiene Ruhm.</p>
-    <p>Status: Gesperrt</p>
-    <button onclick="info('Arena')">Öffnen</button>
-  </div>
-
-  <div class="building">
-    <h3>🗝️ Dungeon-Zentrale</h3>
-    <p>Verwalte Dungeons, Schlüssel und Bosskämpfe.</p>
-    <p>Status: Gesperrt</p>
-    <button onclick="info('Dungeon')">Öffnen</button>
-  </div>
-
 </div>
 
 <script>
+let level = 1;
+let gold = 50;
+let energy = 100;
+let buff = "Keiner";
+
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-function info(name) {
-  alert(name + " ist in dieser Version noch in Entwicklung.");
+function updateUI() {
+  document.getElementById("level").innerText = level;
+  document.getElementById("gold").innerText = gold;
+  document.getElementById("energy").innerText = energy;
+  document.getElementById("buff").innerText = buff;
 }
+
+function startQuest(cost, reward) {
+  if (energy < cost) {
+    document.getElementById("questText").innerText = "Nicht genug Energie!";
+    return;
+  }
+
+  energy -= cost;
+  gold += reward;
+  level += 1;
+
+  document.getElementById("questText").innerText =
+    "Quest abgeschlossen! +" + reward + " Gold";
+
+  updateUI();
+}
+
+function eat(buffName, cost) {
+  if (gold < cost) {
+    alert("Nicht genug Gold!");
+    return;
+  }
+
+  gold -= cost;
+  buff = buffName;
+
+  if (buffName === "Energie +20") {
+    energy = Math.min(energy + 20, 100);
+  }
+
+  updateUI();
+}
+
+updateUI();
 </script>
 
 </body>
