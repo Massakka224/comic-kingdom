@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 7 (Crafting)</title>
+<title>Comic Kingdom - Version 7.1 (Equip System)</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
 h1, h2 { text-align: center; }
@@ -112,6 +112,10 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   <div class="box">
     <h2>Item Details</h2>
     <div id="itemDetails"></div>
+    <button id="btnEquip">Ausrüsten</button>
+    <button id="btnUnequip">Ablegen</button>
+    <button id="btnUpgrade">Verbessern</button>
+    <button id="btnDestroy">Zerstören</button>
     <button onclick="closeModal()">Schließen</button>
   </div>
 </div>
@@ -130,12 +134,19 @@ let holz = 0;
 let stein = 0;
 let eisen = 0;
 
-function show(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+// ===== INVENTAR & ITEMS =====
+let inventory = [];
+let equipped = {
+  Kopf: null,
+  Brust: null,
+  Beine: null,
+  Handschuhe: null,
+  Schuhe: null,
+  Waffe: null,
+  Ring: null,
+  Amulett: null
+};
 
-// ===== ITEM GENERATOR =====
 const itemNames = {
   Waffe: ["Schwert", "Axt", "Dolch", "Stab", "Bogen"],
   Kopf: ["Helm", "Hut", "Krone"],
@@ -174,13 +185,11 @@ function generateItem(level, source="quest") {
   if (slot === "Ring") stats.mana = Math.ceil(level * (0.4 + Math.random()));
   if (slot === "Amulett") stats.intelligenz = Math.ceil(level * (0.5 + Math.random()));
 
-  const classReq = ["Krieger", "Magier", "Nekromant", "Berserker"];
   const item = {
     id: Date.now() + Math.floor(Math.random()*1000),
     name: `${rarity.name} ${baseName}`,
     slot: slot,
     levelReq: level,
-    classReq: classReq,
     rarity: rarity.name,
     stats: stats,
     upgradeLevel: 0,
@@ -188,17 +197,6 @@ function generateItem(level, source="quest") {
   };
   return item;
 }
-
-function generateManyItems(count, level, source="quest") {
-  const items = [];
-  for (let i=0; i<count; i++) {
-    items.push(generateItem(level, source));
-  }
-  return items;
-}
-
-// ===== INVENTAR =====
-let inventory = [];
 
 function addToInventory(item) {
   inventory.push(item);
@@ -232,12 +230,94 @@ function openItemModal(itemId) {
     <p>Rarität: ${item.rarity}</p>
     <p>Levelanforderung: ${item.levelReq}</p>
     <p>Stats: ${JSON.stringify(item.stats)}</p>
-    <p>Quelle: ${item.source}</p>
+    <p>Upgrade: +${item.upgradeLevel}</p>
   `;
+
+  document.getElementById("btnEquip").onclick = () => equipItem(item.id);
+  document.getElementById("btnUnequip").onclick = () => unequipItem(item.slot);
+  document.getElementById("btnUpgrade").onclick = () => upgradeItem(item.id);
+  document.getElementById("btnDestroy").onclick = () => destroyItem(item.id);
 }
 
 function closeModal() {
   document.getElementById("modal").style.display = "none";
+}
+
+// ===== EQUIP SYSTEM =====
+function equipItem(itemId) {
+  const item = inventory.find(i => i.id === itemId);
+  if (!item) return;
+
+  if (level < item.levelReq) {
+    alert("Level zu niedrig!");
+    return;
+  }
+
+  // equip
+  const old = equipped[item.slot];
+  equipped[item.slot] = item;
+
+  // remove from inventory
+  inventory = inventory.filter(i => i.id !== itemId);
+
+  // if old item existed, put back into inventory
+  if (old) inventory.push(old);
+
+  updateInventoryUI();
+  updateEquipmentUI();
+  closeModal();
+}
+
+function unequipItem(slot) {
+  const item = equipped[slot];
+  if (!item) return;
+
+  inventory.push(item);
+  equipped[slot] = null;
+
+  updateInventoryUI();
+  updateEquipmentUI();
+  closeModal();
+}
+
+function upgradeItem(itemId) {
+  const item = inventory.find(i => i.id === itemId);
+  if (!item) return;
+
+  // upgrade costs
+  const cost = 10 + item.upgradeLevel * 5;
+  if (gold < cost) {
+    alert("Nicht genug Gold.");
+    return;
+  }
+
+  gold -= cost;
+  item.upgradeLevel++;
+  for (let k in item.stats) {
+    item.stats[k] = Math.ceil(item.stats[k] * 1.2);
+  }
+
+  document.getElementById("gold").innerText = gold;
+  updateInventoryUI();
+  closeModal();
+}
+
+function destroyItem(itemId) {
+  inventory = inventory.filter(i => i.id !== itemId);
+  updateInventoryUI();
+  closeModal();
+}
+
+function updateEquipmentUI() {
+  const slotsDiv = document.getElementById("slots");
+  slotsDiv.innerHTML = "";
+  for (let s in equipped) {
+    const item = equipped[s];
+    const el = document.createElement("div");
+    el.className = "item";
+    el.innerText = `${s}: ${item ? item.name : "leer"}`;
+    slotsDiv.appendChild(el);
+  }
 }
 
 // ===== QUESTS =====
@@ -272,6 +352,14 @@ function rewardItems(source="quest") {
   alert("Du hast neue Items bekommen!");
 }
 
+function generateManyItems(count, level, source="quest") {
+  const items = [];
+  for (let i=0; i<count; i++) {
+    items.push(generateItem(level, source));
+  }
+  return items;
+}
+
 // ===== BOSS =====
 const bosses = [
   {name:"Riesiger Troll", levelReq:5, dropChance:40},
@@ -288,10 +376,9 @@ function fightBoss() {
 
   document.getElementById("bossText").innerText = `Kämpfe gegen ${boss.name}...`;
 
-  const won = Math.random() * 100 < 80; // 80% chance
+  const won = Math.random() * 100 < 80;
   if (won) {
     document.getElementById("bossText").innerText = `Boss ${boss.name} besiegt!`;
-
     if (Math.random()*100 < boss.dropChance) {
       const drops = generateManyItems(1, level, "Boss");
       drops.forEach(item => addToInventory(item));
@@ -299,7 +386,6 @@ function fightBoss() {
     } else {
       alert("Keine Beute diesmal.");
     }
-
   } else {
     document.getElementById("bossText").innerText = `Du wurdest besiegt...`;
   }
