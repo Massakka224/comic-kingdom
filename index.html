@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 8</title>
+<title>Comic Kingdom - Version 9</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
 h1, h2 { text-align: center; }
@@ -40,7 +40,6 @@ body { padding-top: 70px; }
 <p>Schokolade: <span id="schoko">1</span></p>
 <p>Bestienkristalle: <span id="kristalle">0</span></p>
 <p>Klasse: <span id="klasse">Krieger</span></p>
-<button onclick="enableSound()">Sound aktivieren</button>
 </div>
 </div>
 
@@ -104,6 +103,18 @@ body { padding-top: 70px; }
 </div>
 </div>
 
+<!-- Gebäude Modal -->
+<div id="buildingModal" style="display:none;">
+<div class="box">
+<h2 id="buildingTitle">Gebäude</h2>
+<p id="buildingDesc"></p>
+<p><b>Level:</b> <span id="buildingLevel"></span></p>
+<button onclick="upgradeBuilding()">Ausbauen</button>
+<button onclick="useBuilding()">Benutzen</button>
+<button onclick="closeBuildingModal()">Schließen</button>
+</div>
+</div>
+
 <script>
 let level = 1;
 let gold = 50;
@@ -119,11 +130,15 @@ let equipped = { head: null, body: null, weapon: null, ring: null, boots: null }
 
 let selectedItem = null;
 
-let soundEnabled = false;
+// BUILDINGS
+let buildings = {
+  "Steinbruch": { level: 1, desc: "Produziert Gold & Materialien.", action: "mine" },
+  "Festung": { level: 1, desc: "Schützt deine Stadt und gibt Boni.", action: "fort" },
+  "Taverne": { level: 1, desc: "Hier kannst du Essen wählen und Buffs bekommen.", action: "tavern" },
+  "Schmiede": { level: 1, desc: "Hier kannst du Items verbessern oder craften.", action: "forge" }
+};
 
-// SOUNDS
-const soundLevelComplete = new Audio("sounds/game-level-completed.mp3");
-const soundBossWin = new Audio("sounds/boss-win.mp3");
+let selectedBuilding = null;
 
 // UI functions
 function show(id) {
@@ -173,9 +188,66 @@ function closeModal() {
   document.getElementById("modal").style.display = "none";
 }
 
-function enableSound() {
-  soundEnabled = true;
-  alert("Sound aktiviert!");
+// BUILDINGS UI
+function showBuildings() {
+  let box = document.getElementById("buildings");
+  box.innerHTML = "";
+  Object.keys(buildings).forEach(b => {
+    let btn = document.createElement("button");
+    btn.innerText = b + " (Lvl " + buildings[b].level + ")";
+    btn.onclick = () => openBuilding(b);
+    box.appendChild(btn);
+  });
+}
+
+function openBuilding(name) {
+  selectedBuilding = name;
+  document.getElementById("buildingTitle").innerText = name;
+  document.getElementById("buildingDesc").innerText = buildings[name].desc;
+  document.getElementById("buildingLevel").innerText = buildings[name].level;
+  document.getElementById("buildingModal").style.display = "block";
+}
+
+function closeBuildingModal() {
+  document.getElementById("buildingModal").style.display = "none";
+}
+
+function upgradeBuilding() {
+  buildings[selectedBuilding].level++;
+  showBuildings();
+  saveGame();
+}
+
+function useBuilding() {
+  let b = buildings[selectedBuilding];
+  if (b.action === "tavern") {
+    tavernMenu();
+  } else if (b.action === "mine") {
+    gold += 10 * b.level;
+    alert("Steinbruch: Du bekommst " + (10 * b.level) + " Gold!");
+  } else if (b.action === "forge") {
+    alert("Schmiede: Crafting wird später implementiert.");
+  } else if (b.action === "fort") {
+    alert("Festung: Verteidigungsbonus aktiv!");
+  }
+  saveGame();
+}
+
+// TAVERNE
+function tavernMenu() {
+  let food = prompt("Wähle Essen:\n1) Brot (+10 Energie)\n2) Eintopf (+20 Gold)\n3) Trank (+1 Level)");
+  if (food == "1") {
+    energy += 10;
+    if (energy > maxEnergy) energy = maxEnergy;
+    alert("Brot gegessen! +10 Energie");
+  } else if (food == "2") {
+    gold += 20;
+    alert("Eintopf gegessen! +20 Gold");
+  } else if (food == "3") {
+    level += 1;
+    alert("Trank getrunken! +1 Level");
+  }
+  saveGame();
 }
 
 // GAME functions
@@ -192,7 +264,6 @@ function finishQuest() {
   }
   questActive = false;
   level++;
-  if (soundEnabled) soundLevelComplete.play();
   gold += 20;
   document.getElementById("level").innerText = level;
   document.getElementById("questText").innerText = "Quest abgeschlossen!";
@@ -202,7 +273,6 @@ function finishQuest() {
 
 function enterDungeon() {
   document.getElementById("dungeonText").innerText = "Dungeon betreten... Boss kommt!";
-  if (soundEnabled) soundBossWin.play();
   rewardItems("dungeon");
   saveGame();
 }
@@ -223,11 +293,9 @@ function fillEnergyWithChocolate() {
 }
 
 function rewardItems(source) {
-  // simple item generator
   let rarities = ["gewöhnlich", "ungewöhnlich", "selten", "episch", "mystisch", "himmlisch", "legendär"];
   let rarity = rarities[Math.floor(Math.random() * rarities.length)];
 
-  // LEVEL REQUIREMENTS
   if (rarity === "ungewöhnlich" && level < 20) rarity = "gewöhnlich";
   if (rarity === "selten" && level < 30) rarity = "gewöhnlich";
   if (rarity === "episch" && level < 100) rarity = "selten";
@@ -302,7 +370,7 @@ function destroyItem() {
 function saveGame() {
   const save = {
     level, gold, schoko, kristalle, energy, klasse,
-    inventory, equipped
+    inventory, equipped, buildings
   };
   localStorage.setItem("comicKingdomSave", JSON.stringify(save));
 }
@@ -319,32 +387,7 @@ function loadGame() {
   klasse = save.klasse;
   inventory = save.inventory || [];
   equipped = save.equipped || { head: null, body: null, weapon: null, ring: null, boots: null };
-}
-
-// BUILDINGS
-const buildingList = [
-  "Steinbruch",
-  "Festung",
-  "Taverne",
-  "Bäckerei",
-  "Schmiede",
-  "Sägewerk",
-  "Mühle",
-  "Markt",
-  "Bauernhof",
-  "Garten",
-  "Fischerhütte"
-];
-
-function showBuildings() {
-  let box = document.getElementById("buildings");
-  box.innerHTML = "";
-  buildingList.forEach(b => {
-    let btn = document.createElement("button");
-    btn.innerText = b;
-    btn.onclick = () => alert("Gebäude: " + b + "\n\nFunktion: Wird später implementiert.");
-    box.appendChild(btn);
-  });
+  buildings = save.buildings || buildings;
 }
 
 // INITIAL UI
