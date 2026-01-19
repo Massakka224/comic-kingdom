@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 6.2 (Boss Drops)</title>
+<title>Comic Kingdom - Version 7 (Crafting)</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
 h1, h2 { text-align: center; }
@@ -77,6 +77,19 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
     <button onclick="cityGuard()">Stadtwache (Gold)</button>
     <button onclick="fillEnergyWithChocolate()">Energie mit Schokolade auffüllen</button>
   </div>
+
+  <!-- CRAFTING -->
+  <div class="box">
+    <h3>Crafting</h3>
+    <p>Rohstoffe:</p>
+    <p>Holz: <span id="holz">0</span> | Stein: <span id="stein">0</span> | Eisen: <span id="eisen">0</span></p>
+    <button onclick="gatherResources()">Rohstoffe sammeln</button>
+
+    <h4>Crafting Liste:</h4>
+    <button onclick="craft('Schwert')">Schwert (Holz 2 + Eisen 1) - Level 1</button>
+    <button onclick="craft('Helm')">Helm (Holz 1 + Stein 2) - Level 2</button>
+    <button onclick="craft('Rüstung')">Rüstung (Holz 3 + Eisen 2) - Level 5</button>
+  </div>
 </div>
 
 <!-- Inventar -->
@@ -112,6 +125,10 @@ let questActive = false;
 let maxEnergy = 100;
 let energy = maxEnergy;
 let klasse = "Krieger";
+
+let holz = 0;
+let stein = 0;
+let eisen = 0;
 
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -275,7 +292,6 @@ function fightBoss() {
   if (won) {
     document.getElementById("bossText").innerText = `Boss ${boss.name} besiegt!`;
 
-    // Dropchance
     if (Math.random()*100 < boss.dropChance) {
       const drops = generateManyItems(1, level, "Boss");
       drops.forEach(item => addToInventory(item));
@@ -289,7 +305,7 @@ function fightBoss() {
   }
 }
 
-// ===== STADT =====
+// ===== STADT & CRAFTING =====
 function cityGuard() {
   gold += 5;
   document.getElementById("gold").innerText = gold;
@@ -305,6 +321,70 @@ function fillEnergyWithChocolate() {
   document.getElementById("schoko").innerText = schoko;
   document.getElementById("energy").innerText = energy;
 }
+
+function gatherResources() {
+  holz += Math.floor(Math.random()*5) + 1;
+  stein += Math.floor(Math.random()*5) + 1;
+  eisen += Math.floor(Math.random()*3) + 1;
+  document.getElementById("holz").innerText = holz;
+  document.getElementById("stein").innerText = stein;
+  document.getElementById("eisen").innerText = eisen;
+  alert("Rohstoffe gesammelt!");
+}
+
+function craft(itemType) {
+  if (itemType === "Schwert") {
+    if (holz < 2 || eisen < 1) {
+      alert("Nicht genug Rohstoffe.");
+      return;
+    }
+    if (level < 1) {
+      alert("Level zu niedrig.");
+      return;
+    }
+    holz -= 2;
+    eisen -= 1;
+    addToInventory(generateItem(level, "Crafting"));
+    updateResourceUI();
+  }
+
+  if (itemType === "Helm") {
+    if (holz < 1 || stein < 2) {
+      alert("Nicht genug Rohstoffe.");
+      return;
+    }
+    if (level < 2) {
+      alert("Level zu niedrig.");
+      return;
+    }
+    holz -= 1;
+    stein -= 2;
+    addToInventory(generateItem(level, "Crafting"));
+    updateResourceUI();
+  }
+
+  if (itemType === "Rüstung") {
+    if (holz < 3 || eisen < 2) {
+      alert("Nicht genug Rohstoffe.");
+      return;
+    }
+    if (level < 5) {
+      alert("Level zu niedrig.");
+      return;
+    }
+    holz -= 3;
+    eisen -= 2;
+    addToInventory(generateItem(level, "Crafting"));
+    updateResourceUI();
+  }
+}
+
+function updateResourceUI() {
+  document.getElementById("holz").innerText = holz;
+  document.getElementById("stein").innerText = stein;
+  document.getElementById("eisen").innerText = eisen;
+}
+
 </script>
 </body>
 </html>
