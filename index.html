@@ -3,43 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 10</title>
+<title>Comic Kingdom – Version 11.1</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f2f2f2;
-  padding: 80px 10px 10px;
-}
-h1, h2 { text-align: center; }
-button {
-  width: 100%;
-  padding: 12px;
-  margin: 5px 0;
-  font-size: 16px;
-}
-.box {
-  background: #fff;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 8px;
-}
-.section { display: none; }
-.section.active { display: block; }
-.item {
-  border: 1px solid #ccc;
-  padding: 8px;
-  margin: 5px 0;
-  cursor: pointer;
-}
-.item:hover { background: #eee; }
-nav {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  background: #fff;
-  padding: 5px;
-  z-index: 10;
-}
+body { font-family: Arial; background:#f2f2f2; padding:80px 10px 10px; }
+h1,h2 { text-align:center; }
+button { width:100%; padding:12px; margin:5px 0; font-size:16px; }
+.box { background:#fff; padding:10px; border-radius:8px; margin:10px 0; }
+.section { display:none; }
+.section.active { display:block; }
+.item { border:1px solid #ccc; padding:8px; margin:5px 0; cursor:pointer; }
+nav { position:fixed; top:0; left:0; right:0; background:#fff; z-index:10; }
 </style>
 </head>
 
@@ -50,28 +24,13 @@ nav {
 <nav>
 <button onclick="show('status')">Status</button>
 <button onclick="show('stadt')">Stadt</button>
-<button onclick="show('quests')">Quests</button>
-<button onclick="show('dungeon')">Dungeon</button>
 <button onclick="show('inventar')">Inventar</button>
 <button onclick="show('ausruestung')">Ausrüstung</button>
 <button onclick="deleteCharacter()">Charakter löschen</button>
 </nav>
 
-<!-- KLASSE -->
-<div id="classSelect" class="section active">
-<h2>Klasse wählen</h2>
-<div class="box">
-<button onclick="createCharacter('Krieger')">🛡️ Krieger</button>
-<button onclick="createCharacter('Jäger')">🏹 Jäger</button>
-<button onclick="createCharacter('Magier')">🔮 Magier</button>
-<button onclick="createCharacter('Assassine')">🗡️ Assassine</button>
-<button onclick="createCharacter('Nekromant')">💀 Nekromant</button>
-</div>
-</div>
-
 <!-- STATUS -->
-<div id="status" class="section">
-<h2>Status</h2>
+<div id="status" class="section active">
 <div class="box" id="statusBox"></div>
 </div>
 
@@ -79,32 +38,14 @@ nav {
 <div id="stadt" class="section">
 <h2>Stadt</h2>
 <div class="box">
-<button onclick="info('Taverne')">🍺 Taverne</button>
-<button onclick="info('Schmied')">⚒️ Schmied</button>
-<button onclick="info('Magieladen')">🔮 Magieladen</button>
-<button onclick="info('Arena')">🏟️ Arena</button>
-<button onclick="info('Dungeon')">🕳️ Dungeon</button>
-<button onclick="info('Stall')">🐎 Stall</button>
-<button onclick="info('Gilde')">🏰 Gilde</button>
-<p id="cityInfo"></p>
-</div>
-</div>
-
-<!-- QUESTS -->
-<div id="quests" class="section">
-<h2>Quests</h2>
-<div class="box">
-<button onclick="startQuest()">Quest starten</button>
-<p id="questText">Keine aktive Quest</p>
-</div>
-</div>
-
-<!-- DUNGEON -->
-<div id="dungeon" class="section">
-<h2>Dungeon</h2>
-<div class="box">
-<button onclick="runDungeon()">Dungeon betreten</button>
-<p id="dungeonText"></p>
+<button onclick="taverne()">🍺 Taverne</button>
+<button onclick="schmied()">⚒️ Schmied</button>
+<button onclick="magieladen()">🔮 Magieladen</button>
+<button onclick="arena()">🏟️ Arena</button>
+<button onclick="dungeon()">🕳️ Dungeon</button>
+<button onclick="stall()">🐎 Stall</button>
+<button onclick="gilde()">🏰 Gilde</button>
+<p id="cityLog"></p>
 </div>
 </div>
 
@@ -120,187 +61,124 @@ nav {
 <div class="box" id="equipmentSlots"></div>
 </div>
 
-<!-- ITEM MODAL -->
-<div id="modal" style="display:none">
-<div class="box">
-<div id="itemDetails"></div>
-<button onclick="equipItem()">Ausrüsten</button>
-<button onclick="destroyItem()">Zerstören</button>
-<button onclick="closeModal()">Schließen</button>
-</div>
-</div>
-
 <script>
-let game = {
-  level: 1,
-  gold: 50,
-  klasse: null,
-  stats: {},
-  inventory: [],
-  equipment: {
-    head:null, body:null, legs:null, weapon:null, ring:null, amulet:null
-  }
-};
-
-const classStats = {
-  Krieger: {staerke:10, geschick:5, intelligenz:2, leben:120},
-  Jäger: {staerke:5, geschick:10, intelligenz:3, leben:90},
-  Magier: {staerke:2, geschick:4, intelligenz:12, leben:70},
-  Assassine:{staerke:4, geschick:12, intelligenz:3, leben:80},
-  Nekromant:{staerke:2, geschick:3, intelligenz:13, leben:75}
+let game = JSON.parse(localStorage.getItem("ckSave")) || {
+  level:1, gold:50, klasse:"Krieger",
+  stats:{staerke:10, geschick:5, intelligenz:2, leben:100},
+  inventory:[],
+  equipment:{weapon:null},
+  mount:false
 };
 
 const rarityLevels = {
-  gewöhnlich:1,
-  ungewöhnlich:20,
-  selten:30,
-  episch:100,
-  legendär:150,
-  mystisch:500,
-  himmlisch:700
+  gewöhnlich:1, ungewöhnlich:20, selten:30,
+  episch:100, legendär:150, mystisch:500, himmlisch:700
 };
 
-let selectedItemIndex = null;
-
-function saveGame() {
-  localStorage.setItem("comicKingdomSave", JSON.stringify(game));
-}
-
-function loadGame() {
-  const save = localStorage.getItem("comicKingdomSave");
-  if (save) {
-    game = JSON.parse(save);
-    document.getElementById("classSelect").style.display="none";
-    show('status');
-    updateUI();
-  }
-}
-
-function createCharacter(cls) {
-  game.klasse = cls;
-  game.stats = classStats[cls];
-  saveGame();
-  document.getElementById("classSelect").style.display="none";
-  show('status');
-  updateUI();
-}
-
-function deleteCharacter() {
-  if(confirm("Charakter wirklich löschen?")) {
-    localStorage.removeItem("comicKingdomSave");
-    location.reload();
-  }
-}
-
-function show(id) {
+function save(){ localStorage.setItem("ckSave", JSON.stringify(game)); }
+function show(id){
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
-function updateUI() {
-  document.getElementById("statusBox").innerHTML =
-    `Level: ${game.level}<br>Gold: ${game.gold}<br>Klasse: ${game.klasse}<br>
-     Stärke: ${game.stats.staerke}<br>
-     Geschick: ${game.stats.geschick}<br>
-     Intelligenz: ${game.stats.intelligenz}<br>
-     Leben: ${game.stats.leben}`;
-
-  updateInventory();
-  updateEquipment();
+function updateUI(){
+  document.getElementById("statusBox").innerHTML=
+  `Level: ${game.level}<br>Gold: ${game.gold}<br>Klasse: ${game.klasse}<br>
+   Stärke: ${game.stats.staerke}<br>Leben: ${game.stats.leben}<br>
+   Mount: ${game.mount?"Ja":"Nein"}`;
+  updateInventory(); updateEquip();
 }
+function log(t){ document.getElementById("cityLog").innerText=t; }
 
-function info(name) {
-  document.getElementById("cityInfo").innerText =
-    name + " – wird in einer späteren Version vollständig implementiert.";
-}
+/* ===== GEBÄUDE ===== */
 
-function startQuest() {
-  game.level++;
-  game.gold += 20;
+function taverne(){
+  game.level++; game.gold+=20;
   dropItem();
-  saveGame();
-  updateUI();
-  document.getElementById("questText").innerText = "Quest abgeschlossen!";
+  log("Quest erledigt! +1 Level +20 Gold");
+  save(); updateUI();
 }
 
-function runDungeon() {
-  dropItem();
-  saveGame();
-  updateUI();
-  document.getElementById("dungeonText").innerText = "Dungeon geschafft!";
+function schmied(){
+  if(game.inventory.length===0){ log("Kein Item zum Verbessern"); return; }
+  game.inventory[0].bonus++;
+  log("Item verbessert!");
+  save(); updateInventory();
 }
 
-function dropItem() {
-  let allowed = Object.keys(rarityLevels).filter(r => game.level >= rarityLevels[r]);
+function magieladen(){
+  if(game.gold<10){ log("Zu wenig Gold"); return; }
+  game.gold-=10;
+  game.stats.leben+=5;
+  log("Trank gekauft (+5 Leben)");
+  save(); updateUI();
+}
+
+function arena(){
+  let win=Math.random()>0.4;
+  if(win){ game.gold+=30; log("Arena gewonnen!"); }
+  else{ log("Arena verloren."); }
+  save(); updateUI();
+}
+
+function dungeon(){
+  dropItem(true);
+  log("Dungeon geschafft! Seltenere Beute!");
+  save(); updateUI();
+}
+
+function stall(){
+  if(game.mount){ log("Du hast bereits ein Mount"); return; }
+  if(game.gold<100){ log("100 Gold benötigt"); return; }
+  game.gold-=100; game.mount=true; game.stats.geschick+=5;
+  log("Mount gekauft! +5 Geschick");
+  save(); updateUI();
+}
+
+function gilde(){
+  if(game.gold<10){ log("Kein Gold"); return; }
+  game.gold-=10;
+  log("10 Gold an Gilde gespendet");
+  save(); updateUI();
+}
+
+/* ===== ITEMS ===== */
+
+function dropItem(better=false){
+  let allowed = Object.keys(rarityLevels)
+    .filter(r=>game.level>=rarityLevels[r]);
   let rarity = allowed[Math.floor(Math.random()*allowed.length)];
-  let item = {
-    name: generateItemName(rarity),
-    rarity,
-    slot: "weapon",
-    classReq: game.klasse,
-    bonus: Math.floor(Math.random()*5)+1
+  let item={
+    name:"Waffe des "+rarity,
+    rarity, bonus:better?5:2
   };
   game.inventory.push(item);
 }
 
-function generateItemName(r) {
-  const names = ["Klinge","Stab","Dolch","Axt","Bogen"];
-  return names[Math.floor(Math.random()*names.length)] + " ("+r+")";
-}
-
-function updateInventory() {
-  const list = document.getElementById("inventoryList");
-  list.innerHTML="";
-  if(game.inventory.length===0) {
-    list.innerText="Keine Items";
-    return;
-  }
+function updateInventory(){
+  let d=document.getElementById("inventoryList"); d.innerHTML="";
+  if(game.inventory.length===0){ d.innerText="Keine Items"; return; }
   game.inventory.forEach((it,i)=>{
-    let d=document.createElement("div");
-    d.className="item";
-    d.innerText=it.name;
-    d.onclick=()=>openItem(i);
-    list.appendChild(d);
+    let e=document.createElement("div");
+    e.className="item";
+    e.innerText=it.name+" +"+it.bonus;
+    e.onclick=()=>{ game.equipment.weapon=it; save(); updateEquip(); };
+    d.appendChild(e);
   });
 }
 
-function openItem(i) {
-  selectedItemIndex=i;
-  let it=game.inventory[i];
-  document.getElementById("itemDetails").innerHTML =
-    `<b>${it.name}</b><br>Klasse: ${it.classReq}<br>Bonus: +${it.bonus}`;
-  document.getElementById("modal").style.display="block";
+function updateEquip(){
+  document.getElementById("equipmentSlots").innerHTML=
+  "Waffe: "+(game.equipment.weapon?game.equipment.weapon.name:"leer");
 }
 
-function equipItem() {
-  let it=game.inventory[selectedItemIndex];
-  game.equipment[it.slot]=it;
-  saveGame();
-  updateEquipment();
-  closeModal();
-}
-
-function destroyItem() {
-  game.inventory.splice(selectedItemIndex,1);
-  saveGame();
-  updateInventory();
-  closeModal();
-}
-
-function updateEquipment() {
-  const box=document.getElementById("equipmentSlots");
-  box.innerHTML="";
-  for(let s in game.equipment){
-    box.innerHTML+=`${s}: ${game.equipment[s]?game.equipment[s].name:"leer"}<br>`;
+function deleteCharacter(){
+  if(confirm("Alles löschen?")){
+    localStorage.removeItem("ckSave");
+    location.reload();
   }
 }
 
-function closeModal() {
-  document.getElementById("modal").style.display="none";
-}
-
-loadGame();
+updateUI();
 </script>
-
 </body>
 </html>
