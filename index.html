@@ -3,41 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 11</title>
+<title>Comic Kingdom – Version 8</title>
 
 <style>
 body {
   font-family: Arial, sans-serif;
   background: #f2f2f2;
   margin: 0;
+  padding: 0;
 }
 
-header {
-  background: #2e2e2e;
-  color: white;
+h1, h2, h3 {
   text-align: center;
-  padding: 1em;
 }
 
 nav {
-  display: none;
-  gap: 0.5em;
-  padding: 0.5em;
-  background: #444;
+  position: sticky;
+  top: 0;
+  background: #222;
+  padding: 10px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
 }
 
 nav button {
   flex: 1;
-  padding: 0.8em;
-  border: none;
-  background: #666;
+  padding: 10px;
+  background: #444;
   color: white;
-  border-radius: 6px;
+  border: none;
+  border-radius: 5px;
 }
 
 .section {
   display: none;
-  padding: 1em;
+  padding: 15px;
 }
 
 .section.active {
@@ -46,156 +47,238 @@ nav button {
 
 .box {
   background: white;
-  padding: 1em;
-  margin-bottom: 1em;
+  padding: 15px;
   border-radius: 10px;
+  margin-bottom: 15px;
 }
 
-.class-box {
-  border: 2px solid #ccc;
-  padding: 1em;
-  margin: 0.5em 0;
+.building {
+  background: #ddd;
+  padding: 15px;
+  border-radius: 10px;
+  margin: 10px 0;
   cursor: pointer;
+  font-weight: bold;
+}
+.building:hover {
+  background: #ccc;
 }
 
-.class-box.selected {
-  border-color: green;
-  background: #eaffea;
+.item {
+  border: 1px solid #aaa;
+  padding: 10px;
+  margin: 5px 0;
+  border-radius: 5px;
 }
 </style>
 </head>
 
 <body>
 
-<header>
-  <h1>Comic Kingdom</h1>
-  <p>Version 11 – Charakter-Erstellung</p>
-</header>
+<h1>Comic Kingdom</h1>
 
-<!-- CHARAKTER ERSTELLEN -->
-<div id="creation" class="section active">
+<!-- HAUPTMENÜ -->
+<nav>
+  <button onclick="showSection('status')">Status</button>
+  <button onclick="showSection('quests')">Quests</button>
+  <button onclick="showSection('dungeon')">Dungeon</button>
+  <button onclick="showSection('city')">Stadt</button>
+  <button onclick="showSection('inventory')">Inventar</button>
+</nav>
+
+<!-- KLASSENAUSWAHL -->
+<div id="characterSelect" class="section active">
+  <h2>Wähle deine Klasse</h2>
 
   <div class="box">
-    <h2>Charakter erstellen</h2>
-
-    <label>Name:</label><br>
-    <input id="playerName" placeholder="Dein Name"><br><br>
-
-    <h3>Klasse wählen</h3>
-
-    <div class="class-box" onclick="selectClass('Krieger', this)">
-      <b>Krieger</b><br>
-      Viel Leben, starke Waffen
-    </div>
-
-    <div class="class-box" onclick="selectClass('Magier', this)">
-      <b>Magier</b><br>
-      Hoher Schaden, wenig Leben
-    </div>
-
-    <div class="class-box" onclick="selectClass('Nekromant', this)">
-      <b>Nekromant</b><br>
-      Beschwört Untote, Flüche
-    </div>
-
-    <br>
-    <button onclick="startGame()">Spiel starten</button>
+    <button onclick="selectClass('Krieger')">⚔ Krieger</button><br><br>
+    <button onclick="selectClass('Berserker')">🪓 Berserker</button><br><br>
+    <button onclick="selectClass('Magier')">🔮 Magier</button><br><br>
+    <button onclick="selectClass('Nekromant')">💀 Nekromant</button>
   </div>
-
 </div>
-
-<!-- NAVIGATION -->
-<nav id="menu">
-  <button onclick="show('status')">Status</button>
-  <button onclick="show('taverne')">Taverne</button>
-  <button onclick="show('stadt')">Stadt</button>
-</nav>
 
 <!-- STATUS -->
 <div id="status" class="section">
+  <h2>Status</h2>
   <div class="box">
-    <p>Name: <b><span id="name"></span></b></p>
-    <p>Klasse: <b><span id="klasse"></span></b></p>
-    <p>Level: <b><span id="level">1</span></b></p>
-    <p>Gold: <b><span id="gold">50</span></b></p>
-    <p>Energie: <b><span id="energy">100</span></b></p>
+    <p>Klasse: <span id="classText"></span></p>
+    <p>Level: <span id="level">1</span></p>
+    <p>Gold: <span id="gold">50</span></p>
+    <p>Energie: <span id="energy">100</span> / 100</p>
+    <p>Schokolade: <span id="choco">1</span></p>
   </div>
 </div>
 
-<!-- TAVERNE -->
-<div id="taverne" class="section">
+<!-- QUESTS -->
+<div id="quests" class="section">
+  <h2>Quests</h2>
   <div class="box">
-    <h2>Quests</h2>
-    <button onclick="quest()">Quest machen</button>
-    <p id="questText"></p>
+    <p id="questText">Keine aktive Quest</p>
+    <button onclick="acceptQuest()">Quest annehmen</button>
+    <button onclick="finishQuest()">Quest abschließen</button>
+  </div>
+</div>
+
+<!-- DUNGEON -->
+<div id="dungeon" class="section">
+  <h2>Dungeon</h2>
+  <div class="box">
+    <p id="dungeonText">Bereit für den Kampf</p>
+    <button onclick="enterDungeon()">Dungeon betreten</button>
   </div>
 </div>
 
 <!-- STADT -->
-<div id="stadt" class="section">
-  <div class="box">
-    <h2>🏰 Festung</h2>
-    <p>Level: <span id="fortressLevel">1</span></p>
+<div id="city" class="section">
+  <h2>Stadt</h2>
+
+  <div class="building" onclick="openBuilding('tavern')">🍺 Taverne</div>
+  <div class="building" onclick="openBuilding('forge')">⚒ Schmiede</div>
+  <div class="building" onclick="openBuilding('farm')">🌾 Farm</div>
+  <div class="building" onclick="openBuilding('fortress')">🏰 Festung</div>
+
+  <div class="box" id="buildingMenu">
+    <p>Wähle ein Gebäude.</p>
+  </div>
+</div>
+
+<!-- INVENTAR -->
+<div id="inventory" class="section">
+  <h2>Inventar</h2>
+  <div class="box" id="inventoryList">
+    Keine Items
   </div>
 </div>
 
 <script>
-let player = {
-  name: "",
-  klasse: "",
+const player = {
+  class: "",
   level: 1,
   gold: 50,
-  energy: 100
+  energy: 100,
+  choco: 1,
+  inventory: []
 };
 
-let selectedClass = "";
+let questActive = false;
 
-function selectClass(name, el) {
-  document.querySelectorAll('.class-box').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedClass = name;
+const itemNames = [
+  "Altes Schwert",
+  "Rostige Axt",
+  "Magischer Stab",
+  "Schattenklinge",
+  "Helm des Wanderers",
+  "Rüstung der Bestie"
+];
+
+function showSection(id) {
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
-function startGame() {
-  let name = document.getElementById("playerName").value;
-
-  if (!name || !selectedClass) {
-    alert("Name und Klasse wählen!");
-    return;
-  }
-
-  player.name = name;
-  player.klasse = selectedClass;
-
-  document.getElementById("name").innerText = player.name;
-  document.getElementById("klasse").innerText = player.klasse;
-
-  document.getElementById("creation").style.display = "none";
-  document.getElementById("menu").style.display = "flex";
-
-  show('status');
+function selectClass(c) {
+  player.class = c;
+  document.getElementById("classText").innerText = c;
+  showSection("status");
 }
 
-function show(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-function quest() {
+function acceptQuest() {
+  if (questActive) return;
   if (player.energy < 10) {
-    document.getElementById("questText").innerText = "Keine Energie!";
+    alert("Nicht genug Energie!");
     return;
   }
-
+  questActive = true;
   player.energy -= 10;
-  player.gold += 15;
+  updateStatus();
+  document.getElementById("questText").innerText = "Quest läuft...";
+}
+
+function finishQuest() {
+  if (!questActive) return;
+  questActive = false;
+  player.gold += 20;
   player.level += 1;
 
-  document.getElementById("energy").innerText = player.energy;
-  document.getElementById("gold").innerText = player.gold;
-  document.getElementById("level").innerText = player.level;
+  const item = itemNames[Math.floor(Math.random() * itemNames.length)];
+  player.inventory.push(item);
 
+  updateStatus();
+  updateInventory();
   document.getElementById("questText").innerText = "Quest abgeschlossen!";
+}
+
+function enterDungeon() {
+  if (player.energy < 20) {
+    alert("Nicht genug Energie!");
+    return;
+  }
+  player.energy -= 20;
+  player.gold += 50;
+  updateStatus();
+  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen!";
+}
+
+function openBuilding(type) {
+  const menu = document.getElementById("buildingMenu");
+
+  if (type === "tavern") {
+    menu.innerHTML = `
+      <h3>Taverne</h3>
+      <p>Erhalte Quests und fülle Energie.</p>
+      <button onclick="eatFood()">Essen kaufen (+20 Energie)</button>
+    `;
+  }
+
+  if (type === "forge") {
+    menu.innerHTML = `
+      <h3>Schmiede</h3>
+      <p>Verbessere Ausrüstung (später).</p>
+    `;
+  }
+
+  if (type === "farm") {
+    menu.innerHTML = `
+      <h3>Farm</h3>
+      <p>Sammle Ressourcen (kommend).</p>
+    `;
+  }
+
+  if (type === "fortress") {
+    menu.innerHTML = `
+      <h3>Festung</h3>
+      <p>Erhöht deine Stärke.</p>
+    `;
+  }
+}
+
+function eatFood() {
+  if (player.choco <= 0) {
+    alert("Keine Schokolade!");
+    return;
+  }
+  player.choco--;
+  player.energy = Math.min(100, player.energy + 20);
+  updateStatus();
+}
+
+function updateStatus() {
+  document.getElementById("level").innerText = player.level;
+  document.getElementById("gold").innerText = player.gold;
+  document.getElementById("energy").innerText = player.energy;
+  document.getElementById("choco").innerText = player.choco;
+}
+
+function updateInventory() {
+  const inv = document.getElementById("inventoryList");
+  inv.innerHTML = "";
+  player.inventory.forEach(i => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerText = i;
+    inv.appendChild(div);
+  });
 }
 </script>
 
