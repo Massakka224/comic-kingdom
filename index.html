@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 8</title>
+<title>Comic Kingdom - Version 9</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
 h1, h2 { text-align: center; }
@@ -36,6 +36,7 @@ body { padding-top: 70px; }
 <div class="box">
 <p>Level: <span id="level">1</span></p>
 <p>Gold: <span id="gold">50</span></p>
+<p>Stein: <span id="stone">0</span></p>
 <p>Energie: <span id="energy">100</span> / <span id="maxEnergy">100</span></p>
 <p>Schokolade: <span id="schoko">1</span></p>
 <p>Bestienkristalle: <span id="kristalle">0</span></p>
@@ -103,6 +104,7 @@ body { padding-top: 70px; }
 let game = {
   level: 1,
   gold: 50,
+  stone: 0,
   schoko: 1,
   kristalle: 0,
   questActive: false,
@@ -110,14 +112,11 @@ let game = {
   energy: 100,
   klasse: "Krieger",
   inventory: [],
-  equipped: { head: null, body: null, weapon: null, ring: null, boots: null }
+  equipped: { head: null, body: null, weapon: null, ring: null, boots: null },
+  buffs: []
 };
 
 let selectedItem = null;
-
-// SOUNDS (SPÄTER)
-const soundLevelComplete = new Audio();
-const soundBossWin = new Audio();
 
 // UI functions
 function show(id) {
@@ -133,6 +132,7 @@ function updateUI() {
   document.getElementById("schoko").innerText = game.schoko;
   document.getElementById("kristalle").innerText = game.kristalle;
   document.getElementById("klasse").innerText = game.klasse;
+  document.getElementById("stone").innerText = game.stone;
 }
 
 function updateInventory() {
@@ -225,10 +225,6 @@ function finishQuest() {
   game.questActive = false;
   game.level++;
   game.gold += 20;
-
-  // LEVEL COMPLETE SOUND (SPÄTER)
-  // soundLevelComplete.play();
-
   document.getElementById("level").innerText = game.level;
   document.getElementById("questText").innerText = "Quest abgeschlossen!";
   rewardItems("quest");
@@ -239,7 +235,6 @@ function finishQuest() {
 
 function enterDungeon() {
   document.getElementById("dungeonText").innerText = "Dungeon betreten... Boss kommt!";
-  // soundBossWin.play();
   rewardItems("dungeon");
   removeInvalidItems();
   updateUI();
@@ -337,9 +332,9 @@ function destroyItem() {
 
 // BUILDINGS
 const buildings = [
-  { name: "Steinbruch", desc: "Hier kannst du Stein abbauen und Ressourcen sammeln." },
-  { name: "Festung", desc: "Hier kannst du deine Stadt verteidigen und Truppen trainieren." },
-  { name: "Taverne", desc: "Hier kannst du Essen kaufen, Buffs erhalten und Quests starten." }
+  { name: "Steinbruch", desc: "Hier kannst du Stein abbauen und Ressourcen sammeln.", func: mineStone },
+  { name: "Festung", desc: "Hier kannst du Truppen trainieren und deine Verteidigung erhöhen.", func: openFortress },
+  { name: "Taverne", desc: "Hier kannst du Essen kaufen, Buffs erhalten und Quests starten.", func: openTavern }
 ];
 
 function renderBuildings() {
@@ -349,9 +344,54 @@ function renderBuildings() {
     let el = document.createElement("div");
     el.className = "item";
     el.innerText = b.name;
-    el.onclick = () => alert(b.desc);
+    el.onclick = () => b.func();
     div.appendChild(el);
   });
+}
+
+// Steinbruch
+function mineStone() {
+  let amount = 10 + game.level;
+  game.stone += amount;
+  alert("Du hast " + amount + " Stein abgebaut!");
+  updateUI();
+  saveGame();
+}
+
+// Festung
+function openFortress() {
+  let cost = 50;
+  if (game.gold < cost) {
+    alert("Nicht genug Gold!");
+    return;
+  }
+  game.gold -= cost;
+  game.maxEnergy += 10;
+  alert("Festung ausgebaut! +10 Energie Max.");
+  updateUI();
+  saveGame();
+}
+
+// Taverne
+function openTavern() {
+  let choice = prompt("Taverne:\n1) Brot (+10 Energie)\n2) Steak (+20 Energie)\n3) Zaubertrank (+30 Energie)\n\nGib 1-3 ein:");
+  if (choice == "1") {
+    game.energy += 10;
+    if (game.energy > game.maxEnergy) game.energy = game.maxEnergy;
+    alert("Brot gegessen! +10 Energie");
+  } else if (choice == "2") {
+    game.energy += 20;
+    if (game.energy > game.maxEnergy) game.energy = game.maxEnergy;
+    alert("Steak gegessen! +20 Energie");
+  } else if (choice == "3") {
+    game.energy += 30;
+    if (game.energy > game.maxEnergy) game.energy = game.maxEnergy;
+    alert("Zaubertrank! +30 Energie");
+  } else {
+    alert("Ungültig!");
+  }
+  updateUI();
+  saveGame();
 }
 
 // INIT
