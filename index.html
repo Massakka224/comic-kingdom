@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 6.1</title>
+<title>Comic Kingdom - Version 6.2 (Boss Drops)</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
 h1, h2 { text-align: center; }
@@ -23,6 +23,7 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   <button onclick="show('status')">Status</button>
   <button onclick="show('quests')">Quests</button>
   <button onclick="show('dungeon')">Dungeon</button>
+  <button onclick="show('boss')">Boss</button>
   <button onclick="show('stadt')">Stadt</button>
   <button onclick="show('inventar')">Inventar</button>
   <button onclick="show('ausruestung')">Ausrüstung</button>
@@ -56,7 +57,16 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   <h2>Dungeon</h2>
   <div class="box">
     <button onclick="enterDungeon()">Dungeon betreten</button>
-    <p id="dungeonText">Keine Aktion</p>
+    <p id="dungeonText">Noch nicht implementiert</p>
+  </div>
+</div>
+
+<!-- Boss -->
+<div id="boss" class="section">
+  <h2>Boss</h2>
+  <div class="box">
+    <button onclick="fightBoss()">Boss bekämpfen</button>
+    <p id="bossText">Kein Boss aktiv</p>
   </div>
 </div>
 
@@ -132,7 +142,7 @@ function randomFrom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function generateItem(level) {
+function generateItem(level, source="quest") {
   const slot = randomFrom(Object.keys(itemNames));
   const baseName = randomFrom(itemNames[slot]);
   const rarity = rarities.find(r => level >= r.minLvl && Math.random()*100 < r.chance) || rarities[0];
@@ -157,15 +167,15 @@ function generateItem(level) {
     rarity: rarity.name,
     stats: stats,
     upgradeLevel: 0,
-    effect: null
+    source: source
   };
   return item;
 }
 
-function generateManyItems(count, level) {
+function generateManyItems(count, level, source="quest") {
   const items = [];
   for (let i=0; i<count; i++) {
-    items.push(generateItem(level));
+    items.push(generateItem(level, source));
   }
   return items;
 }
@@ -205,6 +215,7 @@ function openItemModal(itemId) {
     <p>Rarität: ${item.rarity}</p>
     <p>Levelanforderung: ${item.levelReq}</p>
     <p>Stats: ${JSON.stringify(item.stats)}</p>
+    <p>Quelle: ${item.source}</p>
   `;
 }
 
@@ -235,18 +246,47 @@ function finishQuest() {
   document.getElementById("gold").innerText = gold;
   document.getElementById("questText").innerText = "Quest abgeschlossen!";
 
-  rewardItems();
+  rewardItems("quest");
 }
 
-function rewardItems() {
-  const newItems = generateManyItems(3, level);
+function rewardItems(source="quest") {
+  const newItems = generateManyItems(3, level, source);
   newItems.forEach(item => addToInventory(item));
   alert("Du hast neue Items bekommen!");
 }
 
-// ===== DUNGEON =====
-function enterDungeon() {
-  document.getElementById("dungeonText").innerText = "Dungeon betreten... (noch nicht implementiert)";
+// ===== BOSS =====
+const bosses = [
+  {name:"Riesiger Troll", levelReq:5, dropChance:40},
+  {name:"Dunkler Drache", levelReq:20, dropChance:55},
+  {name:"Königlicher Dämon", levelReq:50, dropChance:70}
+];
+
+function fightBoss() {
+  const boss = bosses.find(b => level >= b.levelReq);
+  if (!boss) {
+    document.getElementById("bossText").innerText = "Kein Boss verfügbar. Level höher!";
+    return;
+  }
+
+  document.getElementById("bossText").innerText = `Kämpfe gegen ${boss.name}...`;
+
+  const won = Math.random() * 100 < 80; // 80% chance
+  if (won) {
+    document.getElementById("bossText").innerText = `Boss ${boss.name} besiegt!`;
+
+    // Dropchance
+    if (Math.random()*100 < boss.dropChance) {
+      const drops = generateManyItems(1, level, "Boss");
+      drops.forEach(item => addToInventory(item));
+      alert("Boss Drop! Du hast ein Item bekommen!");
+    } else {
+      alert("Keine Beute diesmal.");
+    }
+
+  } else {
+    document.getElementById("bossText").innerText = `Du wurdest besiegt...`;
+  }
 }
 
 // ===== STADT =====
