@@ -3,34 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 7</title>
+<title>Comic Kingdom - Version 8</title>
 <style>
-  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
-  h1, h2 { text-align: center; }
-  button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
-  .section { display: none; }
-  .section.active { display: block; }
-  .box { background: white; padding: 1em; margin: 1em 0; border-radius: 10px; }
-  .item { border: 1px solid #ddd; padding: 10px; margin: 5px 0; cursor: pointer; }
-  .item:hover { background: #eee; }
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
+h1, h2 { text-align: center; }
+button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
+.section { display: none; }
+.section.active { display: block; }
+.box { background: white; padding: 1em; margin: 1em 0; border-radius: 10px; }
+.item { border: 1px solid #ddd; padding: 10px; margin: 5px 0; cursor: pointer; }
+.item:hover { background: #eee; }
+.building { border: 1px solid #ddd; padding: 10px; margin: 5px 0; cursor: pointer; }
+.building:hover { background: #eee; }
 </style>
 </head>
 <body>
 
 <h1>Comic Kingdom</h1>
 
+<!-- Navigation -->
 <nav>
-  <button onclick="show('status')">Status</button>
-  <button onclick="show('quests')">Quests</button>
-  <button onclick="show('dungeon')">Dungeon</button>
-  <button onclick="show('stadt')">Stadt</button>
-  <button onclick="show('inventar')">Inventar</button>
-  <button onclick="show('ausruestung')">Ausrüstung</button>
+<button onclick="show('klassenauswahl')">Charakter wählen</button>
+<button onclick="show('status')">Status</button>
+<button onclick="show('stadt')">Stadt</button>
+<button onclick="show('quests')">Quests</button>
+<button onclick="show('dungeon')">Dungeon</button>
+<button onclick="show('arena')">Arena</button>
+<button onclick="show('inventar')">Inventar</button>
+<button onclick="show('ausruestung')">Ausrüstung</button>
 </nav>
 
-<!-- STATUS -->
-<div id="status" class="section active">
+<!-- Charakterauswahl -->
+<div id="klassenauswahl" class="section active">
+  <h2>Charakter erstellen (wie S&F)</h2>
+  <div class="box">
+    <button onclick="createClass('Krieger')">Krieger</button>
+    <button onclick="createClass('Berserker')">Berserker</button>
+    <button onclick="createClass('Zauberer')">Zauberer</button>
+    <button onclick="createClass('Nekromant')">Nekromant</button>
+  </div>
+</div>
+
+<!-- Status -->
+<div id="status" class="section">
   <h2>Status</h2>
   <div class="box">
     <p>Level: <span id="level">1</span></p>
@@ -38,11 +53,20 @@
     <p>Energie: <span id="energy">100</span> / <span id="maxEnergy">100</span></p>
     <p>Schokolade: <span id="schoko">1</span></p>
     <p>Bestienkristalle: <span id="kristalle">0</span></p>
-    <p>Klasse: <span id="klasse">Krieger</span></p>
+    <p>Klasse: <span id="klasse">-</span></p>
   </div>
 </div>
 
-<!-- QUESTS -->
+<!-- Stadt -->
+<div id="stadt" class="section">
+  <h2>Stadt</h2>
+  <div class="box">
+    <p>Tippe auf ein Gebäude, um es zu öffnen:</p>
+    <div id="buildings"></div>
+  </div>
+</div>
+
+<!-- Quest -->
 <div id="quests" class="section">
   <h2>Quests</h2>
   <div class="box">
@@ -52,7 +76,7 @@
   </div>
 </div>
 
-<!-- DUNGEON -->
+<!-- Dungeon -->
 <div id="dungeon" class="section">
   <h2>Dungeon</h2>
   <div class="box">
@@ -61,21 +85,22 @@
   </div>
 </div>
 
-<!-- STADT -->
-<div id="stadt" class="section">
-  <h2>Stadt</h2>
+<!-- Arena -->
+<div id="arena" class="section">
+  <h2>Arena</h2>
   <div class="box">
-    <div class="grid" id="buildings"></div>
+    <button onclick="fightArena()">Kampf starten</button>
+    <p id="arenaText">Keine Aktion</p>
   </div>
 </div>
 
-<!-- INVENTAR -->
+<!-- Inventar -->
 <div id="inventar" class="section">
   <h2>Inventar</h2>
   <div class="box" id="inventoryList">Keine Items</div>
 </div>
 
-<!-- AUSRÜSTUNG -->
+<!-- Ausrüstung -->
 <div id="ausruestung" class="section">
   <h2>Ausrüstung</h2>
   <div class="box">
@@ -84,7 +109,7 @@
   </div>
 </div>
 
-<!-- MODAL -->
+<!-- Modal -->
 <div id="modal" style="display:none;">
   <div class="box">
     <h2>Item Details</h2>
@@ -98,7 +123,6 @@
 </div>
 
 <script>
-/* ======= GLOBAL ======= */
 let level = 1;
 let gold = 50;
 let schoko = 1;
@@ -106,51 +130,127 @@ let kristalle = 0;
 let questActive = false;
 let maxEnergy = 100;
 let energy = maxEnergy;
-let klasse = "Krieger";
-
+let klasse = "";
 let inventory = [];
-let equipped = { weapon: null, armor: null, helmet: null, boots: null, ring: null };
+let equipment = {
+  weapon: null,
+  armor: null,
+  helmet: null,
+  boots: null,
+  gloves: null,
+  ring: null,
+  amulet: null
+};
+let currentItem = null;
 
-/* ======= BUILDINGS ======= */
-let buildings = [
-  { id: "steinbruch", name: "Steinbruch", lvl: 0, desc: "Erhöht Ressourcen, liefert Materialien." },
-  { id: "festung", name: "Festung", lvl: 0, desc: "Erhöht Verteidigung & Stadtbonus." },
-  { id: "taverne", name: "Taverne", lvl: 0, desc: "Hier bekommst du Buffs & Quests." },
-  { id: "schmiede", name: "Schmiede", lvl: 0, desc: "Erlaubt Item-Upgrades & Crafting." },
-  { id: "bibliothek", name: "Bibliothek", lvl: 0, desc: "Erhöht Skills & Wissen." },
-  { id: "markt", name: "Markt", lvl: 0, desc: "Hier kannst du Items handeln." }
+// Gebäude Daten (Hay Day + S&F)
+let buildingsData = [
+  { id: "farm", name: "Farm", type: "hayday", lvl: 1, desc: "Produziert Ressourcen.", action: "collectFarm" },
+  { id: "stall", name: "Stall", type: "hayday", lvl: 1, desc: "Züchtet Tiere.", action: "collectAnimals" },
+  { id: "wood", name: "Holzfäller", type: "hayday", lvl: 1, desc: "Sammelt Holz.", action: "collectWood" },
+  { id: "stone", name: "Steinbruch", type: "hayday", lvl: 1, desc: "Sammelt Stein.", action: "collectStone" },
+  { id: "clay", name: "Lehmgrube", type: "hayday", lvl: 1, desc: "Sammelt Lehm.", action: "collectClay" },
+  { id: "bakery", name: "Bäckerei", type: "hayday", lvl: 1, desc: "Stellt Nahrung her.", action: "bakeFood" },
+  { id: "tavern", name: "Taverne", type: "sf", lvl: 1, desc: "Kauft Buffs & Essen.", action: "openTavern" },
+  { id: "questhouse", name: "Questhaus", type: "sf", lvl: 1, desc: "Nimmt Quests an.", action: "openQuesthouse" },
+  { id: "arena", name: "Arena", type: "sf", lvl: 1, desc: "Kämpfe gegen andere Spieler.", action: "openArena" },
+  { id: "dungeon", name: "Dungeon", type: "sf", lvl: 1, desc: "Betritt Dungeons.", action: "openDungeon" },
+  { id: "market", name: "Marktplatz", type: "sf", lvl: 1, desc: "Handel & Verkauf.", action: "openMarket" },
+  { id: "training", name: "Trainingsplatz", type: "sf", lvl: 1, desc: "Trainiert deine Werte.", action: "openTraining" }
 ];
 
-/* ======= ITEMS ======= */
-function createItem(rarity) {
-  const names = {
-    common: ["Eisenhelm", "Lederstiefel", "Holzschwert", "Eisenrüstung"],
-    uncommon: ["Silberhelm", "Stahlstiefel", "Stahlschwert", "Drachenleder"],
-    rare: ["Dämmerungsschwert", "Feuerhandschuhe", "Blitzring", "Eisrüstung"],
-    epic: ["Sternenstab", "Königsrüstung", "Drachenkrone", "Götterschwert"],
-    legendary: ["Axt des Zorns", "Himmelsschuppe", "Seelenklinge", "Chaosring"],
-    mystical: ["Runenstab des Windes", "Schattenrüstung", "Mondklinge", "Lichthelm"],
-    heavenly: ["Himmlische Axt", "Göttliche Rüstung", "Sternenkrone", "Himmelsstiefel"]
+// Save / Load
+function saveGame() {
+  const data = {
+    level, gold, schoko, kristalle, questActive, maxEnergy, energy, klasse,
+    inventory, equipment, buildingsData
   };
-  const levels = { common: 1, uncommon: 20, rare: 30, epic: 100, legendary: 150, mystical: 500, heavenly: 700 };
-  const bonus = { common: 1, uncommon: 2, rare: 4, epic: 6, legendary: 9, mystical: 12, heavenly: 16 };
-
-  const nameList = names[rarity];
-  const name = nameList[Math.floor(Math.random() * nameList.length)];
-  return {
-    id: "item_" + Date.now() + "_" + Math.floor(Math.random()*1000),
-    name: name,
-    rarity: rarity,
-    requiredLevel: levels[rarity],
-    power: bonus[rarity] + Math.floor(Math.random()*5),
-    type: ["weapon","armor","helmet","boots","ring"][Math.floor(Math.random()*5)],
-    classOnly: klasse
-  };
+  localStorage.setItem("comicKingdomSave", JSON.stringify(data));
 }
 
-/* ======= UI ======= */
+function loadGame() {
+  const data = JSON.parse(localStorage.getItem("comicKingdomSave"));
+  if (data) {
+    level = data.level;
+    gold = data.gold;
+    schoko = data.schoko;
+    kristalle = data.kristalle;
+    questActive = data.questActive;
+    maxEnergy = data.maxEnergy;
+    energy = data.energy;
+    klasse = data.klasse;
+    inventory = data.inventory;
+    equipment = data.equipment;
+    buildingsData = data.buildingsData;
+    updateUI();
+  }
+}
+
+// UI
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  if(id === "stadt") renderBuildings();
-  if(id === "inventar") renderInventory
+  if (id === "stadt") renderBuildings();
+  updateUI();
+}
+
+function updateUI() {
+  document.getElementById("level").innerText = level;
+  document.getElementById("gold").innerText = gold;
+  document.getElementById("energy").innerText = energy;
+  document.getElementById("maxEnergy").innerText = maxEnergy;
+  document.getElementById("schoko").innerText = schoko;
+  document.getElementById("kristalle").innerText = kristalle;
+  document.getElementById("klasse").innerText = klasse || "-";
+  renderInventory();
+  renderEquipment();
+}
+
+// Klassen erstellen
+function createClass(c) {
+  klasse = c;
+  level = 1;
+  gold = 50;
+  energy = maxEnergy;
+  inventory = [];
+  equipment = { weapon: null, armor: null, helmet: null, boots: null, gloves: null, ring: null, amulet: null };
+  questActive = false;
+  saveGame();
+  show("status");
+}
+
+// Gebäude
+function renderBuildings() {
+  const el = document.getElementById("buildings");
+  el.innerHTML = "";
+  buildingsData.forEach(b => {
+    const div = document.createElement("div");
+    div.className = "building";
+    div.innerHTML = `<b>${b.name}</b> (Lvl ${b.lvl})<br><small>${b.desc}</small>`;
+    div.onclick = () => openBuilding(b.id);
+    el.appendChild(div);
+  });
+}
+
+function openBuilding(id) {
+  const b = buildingsData.find(x => x.id === id);
+  if (!b) return;
+
+  if (b.action === "collectFarm") collectFarm();
+  if (b.action === "collectAnimals") collectAnimals();
+  if (b.action === "collectWood") collectWood();
+  if (b.action === "collectStone") collectStone();
+  if (b.action === "collectClay") collectClay();
+  if (b.action === "bakeFood") bakeFood();
+  if (b.action === "openTavern") openTavern();
+  if (b.action === "openQuesthouse") show("quests");
+  if (b.action === "openArena") show("arena");
+  if (b.action === "openDungeon") show("dungeon");
+  if (b.action === "openMarket") market();
+  if (b.action === "openTraining") training();
+}
+
+// Hay Day Funktionen
+function collectFarm() {
+  gold += 5;
+  energy -= 5;
