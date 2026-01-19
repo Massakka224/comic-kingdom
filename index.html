@@ -111,12 +111,11 @@ let klasse = "Krieger";
 
 let inventory = [];
 let equipped = { head: null, body: null, weapon: null, ring: null, boots: null };
-
 let selectedItem = null;
 
-// SOUNDS
-const soundLevelComplete = new Audio("https://drive.google.com/uc?export=download&id=1QqS3adhTdqM1ldgZ3BY61kc15H0p44Eu");
-const soundBossWin = new Audio("https://drive.google.com/uc?export=download&id=1TZo2sVyi_rpqxt7uj3CntBfjTAPo-o-N");
+// SOUNDS (Richtig verlinkt im Projekt-Ordner)
+const soundLevelComplete = new Audio("sounds/level_complete.mp3");
+const soundBossWin = new Audio("sounds/boss_win.mp3");
 
 // UI functions
 function show(id) {
@@ -189,8 +188,7 @@ function finishQuest() {
 
 function enterDungeon() {
   document.getElementById("dungeonText").innerText = "Dungeon betreten... Boss kommt!";
-  // Boss win sound
-  soundBossWin.play();
+  soundBossWin.play(); // Boss win sound
   rewardItems("dungeon");
 }
 
@@ -208,11 +206,9 @@ function fillEnergyWithChocolate() {
 }
 
 function rewardItems(source) {
-  // simple item generator
   let rarities = ["gewöhnlich", "ungewöhnlich", "selten", "episch", "mystisch", "himmlisch", "legendär"];
   let rarity = rarities[Math.floor(Math.random() * rarities.length)];
 
-  // LEVEL REQUIREMENTS
   if (rarity === "ungewöhnlich" && level < 20) rarity = "gewöhnlich";
   if (rarity === "selten" && level < 30) rarity = "gewöhnlich";
   if (rarity === "episch" && level < 100) rarity = "selten";
