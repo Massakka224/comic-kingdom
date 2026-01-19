@@ -3,68 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 8.1</title>
+<title>Comic Kingdom – Version 8.2</title>
 
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background: #f2f2f2;
-  margin: 0;
-}
-
-h1, h2 {
-  text-align: center;
-}
-
-nav {
-  position: sticky;
-  top: 0;
-  background: #222;
-  padding: 10px;
-  display: flex;
-  gap: 5px;
-}
-
-nav button {
-  flex: 1;
-  padding: 10px;
-  background: #444;
-  color: white;
-  border: none;
-  border-radius: 5px;
-}
-
-.section {
-  display: none;
-  padding: 15px;
-}
-
-.section.active {
-  display: block;
-}
-
-.box {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
-}
-
-.building {
-  background: #ddd;
-  padding: 15px;
-  border-radius: 10px;
-  margin: 10px 0;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.item {
-  border: 1px solid #aaa;
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 5px;
-}
+body { font-family: Arial; background:#f2f2f2; margin:0; }
+h1,h2{text-align:center;}
+nav{display:flex;background:#222;padding:8px;}
+nav button{flex:1;color:white;background:#444;border:none;padding:10px;}
+.section{display:none;padding:15px;}
+.section.active{display:block;}
+.box{background:white;padding:15px;border-radius:10px;margin-bottom:10px;}
+.item{border:1px solid #aaa;padding:8px;margin:5px 0;border-radius:5px;}
+.slot{font-weight:bold;margin-top:5px;}
 </style>
 </head>
 
@@ -73,162 +23,122 @@ nav button {
 <h1>Comic Kingdom</h1>
 
 <nav>
-  <button onclick="show('status')">Status</button>
-  <button onclick="show('quests')">Quests</button>
-  <button onclick="show('dungeon')">Dungeon</button>
-  <button onclick="show('city')">Stadt</button>
-  <button onclick="show('inventory')">Inventar</button>
+<button onclick="show('status')">Status</button>
+<button onclick="show('quests')">Quests</button>
+<button onclick="show('inventory')">Inventar</button>
+<button onclick="show('equipment')">Ausrüstung</button>
 </nav>
 
-<!-- CHARAKTER -->
-<div id="character" class="section active">
-  <h2>Wähle deine Klasse</h2>
-  <div class="box">
-    <button onclick="selectClass('Krieger')">⚔ Krieger</button><br><br>
-    <button onclick="selectClass('Berserker')">🪓 Berserker</button><br><br>
-    <button onclick="selectClass('Magier')">🔮 Magier</button><br><br>
-    <button onclick="selectClass('Nekromant')">💀 Nekromant</button>
-  </div>
+<div id="status" class="section active">
+<h2>Status</h2>
+<div class="box">
+<p>Level: <span id="level"></span></p>
+<p>Gold: <span id="gold"></span></p>
+<p>Angriff: <span id="atk"></span></p>
+<p>Leben: <span id="hp"></span></p>
 </div>
-
-<div id="status" class="section">
-  <h2>Status</h2>
-  <div class="box">
-    <p>Klasse: <span id="class"></span></p>
-    <p>Level: <span id="level"></span></p>
-    <p>Gold: <span id="gold"></span></p>
-    <p>Energie: <span id="energy"></span>/100</p>
-    <p>Schokolade: <span id="choco"></span></p>
-  </div>
 </div>
 
 <div id="quests" class="section">
-  <h2>Quests</h2>
-  <div class="box">
-    <p id="questText">Keine aktive Quest</p>
-    <button onclick="startQuest()">Quest annehmen</button>
-    <button onclick="finishQuest()">Quest abschließen</button>
-  </div>
+<h2>Quest</h2>
+<div class="box">
+<button onclick="finishQuest()">Quest abschließen</button>
 </div>
-
-<div id="dungeon" class="section">
-  <h2>Dungeon</h2>
-  <div class="box">
-    <button onclick="runDungeon()">Dungeon betreten</button>
-  </div>
-</div>
-
-<div id="city" class="section">
-  <h2>Stadt</h2>
-  <div class="building" onclick="tavern()">🍺 Taverne</div>
-  <div class="building">⚒ Schmiede</div>
-  <div class="building">🌾 Farm</div>
-  <div class="building">🏰 Festung</div>
-  <div class="box" id="cityBox">Wähle ein Gebäude</div>
 </div>
 
 <div id="inventory" class="section">
-  <h2>Inventar</h2>
-  <div class="box" id="inv"></div>
+<h2>Inventar</h2>
+<div class="box" id="inv"></div>
+</div>
+
+<div id="equipment" class="section">
+<h2>Ausrüstung</h2>
+<div class="box">
+<div class="slot">Waffe: <span id="slot-weapon">—</span></div>
+<div class="slot">Helm: <span id="slot-helmet">—</span></div>
+<div class="slot">Rüstung: <span id="slot-armor">—</span></div>
+<div class="slot">Ring: <span id="slot-ring">—</span></div>
+</div>
 </div>
 
 <script>
 let player = {
-  class: "",
-  level: 1,
-  gold: 50,
-  energy: 100,
-  choco: 1,
-  inventory: []
+ level:1,
+ gold:50,
+ baseAtk:5,
+ baseHp:100,
+ equipment:{ weapon:null, helmet:null, armor:null, ring:null },
+ inventory:[]
 };
 
-const itemPool = [
-  "Rostiges Schwert",
-  "Magischer Stab",
-  "Schattenhelm",
-  "Axt der Bestie",
-  "Umhang des Lehrlings"
+const items = [
+ {name:"Rostiges Schwert",slot:"weapon",atk:3,hp:0},
+ {name:"Eiserner Helm",slot:"helmet",atk:0,hp:10},
+ {name:"Lederrüstung",slot:"armor",atk:0,hp:20},
+ {name:"Ring der Kraft",slot:"ring",atk:2,hp:5}
 ];
 
-function save() {
-  localStorage.setItem("comicKingdomSave", JSON.stringify(player));
+function save(){localStorage.setItem("ck_save",JSON.stringify(player));}
+function load(){
+ let s=localStorage.getItem("ck_save");
+ if(s)player=JSON.parse(s);
+ update();
+}
+function show(id){
+ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
 }
 
-function load() {
-  const data = localStorage.getItem("comicKingdomSave");
-  if (data) {
-    player = JSON.parse(data);
-    updateUI();
-    show("status");
-  }
+function totalAtk(){
+ let bonus=0;
+ Object.values(player.equipment).forEach(i=>{if(i)bonus+=i.atk});
+ return player.baseAtk+bonus;
+}
+function totalHp(){
+ let bonus=0;
+ Object.values(player.equipment).forEach(i=>{if(i)bonus+=i.hp});
+ return player.baseHp+bonus;
 }
 
-function show(id) {
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+function update(){
+ document.getElementById("level").innerText=player.level;
+ document.getElementById("gold").innerText=player.gold;
+ document.getElementById("atk").innerText=totalAtk();
+ document.getElementById("hp").innerText=totalHp();
+
+ ["weapon","helmet","armor","ring"].forEach(s=>{
+  document.getElementById("slot-"+s).innerText=
+   player.equipment[s]?player.equipment[s].name:"—";
+ });
+
+ let inv=document.getElementById("inv");
+ inv.innerHTML="";
+ player.inventory.forEach((it,i)=>{
+  let d=document.createElement("div");
+  d.className="item";
+  d.innerHTML=`
+   <b>${it.name}</b><br>
+   Angriff +${it.atk}, Leben +${it.hp}<br>
+   <button onclick="equip(${i})">Ausrüsten</button>
+  `;
+  inv.appendChild(d);
+ });
+ save();
 }
 
-function selectClass(c) {
-  player.class = c;
-  save();
-  updateUI();
-  show("status");
+function equip(i){
+ let item=player.inventory[i];
+ player.equipment[item.slot]=item;
+ update();
 }
 
-function updateUI() {
-  document.getElementById("class").innerText = player.class;
-  document.getElementById("level").innerText = player.level;
-  document.getElementById("gold").innerText = player.gold;
-  document.getElementById("energy").innerText = player.energy;
-  document.getElementById("choco").innerText = player.choco;
-
-  const inv = document.getElementById("inv");
-  inv.innerHTML = "";
-  player.inventory.forEach(i => {
-    const d = document.createElement("div");
-    d.className = "item";
-    d.innerText = i;
-    inv.appendChild(d);
-  });
-}
-
-function startQuest() {
-  if (player.energy < 10) return alert("Zu wenig Energie");
-  player.energy -= 10;
-  save();
-  updateUI();
-  document.getElementById("questText").innerText = "Quest läuft...";
-}
-
-function finishQuest() {
-  player.level++;
-  player.gold += 20;
-  const item = itemPool[Math.floor(Math.random() * itemPool.length)];
-  player.inventory.push(item);
-  save();
-  updateUI();
-  document.getElementById("questText").innerText = "Quest abgeschlossen!";
-}
-
-function runDungeon() {
-  if (player.energy < 20) return alert("Zu wenig Energie");
-  player.energy -= 20;
-  player.gold += 50;
-  save();
-  updateUI();
-}
-
-function tavern() {
-  document.getElementById("cityBox").innerHTML =
-    "<p>Essen kaufen (+20 Energie)</p><button onclick='eat()'>Essen</button>";
-}
-
-function eat() {
-  if (player.choco <= 0) return alert("Keine Schokolade");
-  player.choco--;
-  player.energy = Math.min(100, player.energy + 20);
-  save();
-  updateUI();
+function finishQuest(){
+ let item=items[Math.floor(Math.random()*items.length)];
+ player.inventory.push(item);
+ player.gold+=20;
+ player.level++;
+ update();
+ alert("Item gefunden: "+item.name);
 }
 
 load();
