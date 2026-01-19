@@ -3,35 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom - Version 6.3 Fix</title>
+<title>Comic Kingdom - Version 7</title>
 <style>
-body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
-h1, h2 { text-align: center; }
-button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
-.section { display: none; }
-.section.active { display: block; }
-.box { background: white; padding: 1em; margin: 1em 0; border-radius: 10px; }
-.item { border: 1px solid #ddd; padding: 10px; margin: 5px 0; cursor: pointer; }
-.item:hover { background: #eee; }
-#modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; }
-#modal .box { width: 90%; max-width: 500px; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
+  h1, h2 { text-align: center; }
+  button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .box { background: white; padding: 1em; margin: 1em 0; border-radius: 10px; }
+  .item { border: 1px solid #ddd; padding: 10px; margin: 5px 0; cursor: pointer; }
+  .item:hover { background: #eee; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 </style>
 </head>
 <body>
+
 <h1>Comic Kingdom</h1>
 
-<nav id="mainNav">
+<nav>
   <button onclick="show('status')">Status</button>
   <button onclick="show('quests')">Quests</button>
   <button onclick="show('dungeon')">Dungeon</button>
   <button onclick="show('stadt')">Stadt</button>
   <button onclick="show('inventar')">Inventar</button>
   <button onclick="show('ausruestung')">Ausrüstung</button>
-  <button onclick="show('skills')">Skills</button>
-  <button onclick="show('gebaeude')">Gebäude</button>
 </nav>
 
-<!-- Status -->
+<!-- STATUS -->
 <div id="status" class="section active">
   <h2>Status</h2>
   <div class="box">
@@ -44,7 +42,7 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Quests -->
+<!-- QUESTS -->
 <div id="quests" class="section">
   <h2>Quests</h2>
   <div class="box">
@@ -54,7 +52,7 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Dungeon -->
+<!-- DUNGEON -->
 <div id="dungeon" class="section">
   <h2>Dungeon</h2>
   <div class="box">
@@ -63,23 +61,21 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Stadt -->
+<!-- STADT -->
 <div id="stadt" class="section">
   <h2>Stadt</h2>
   <div class="box">
-    <button onclick="cityGuard()">Stadtwache (Gold)</button>
-    <button onclick="fillEnergyWithChocolate()">Energie mit Schokolade auffüllen</button>
-    <p>➡️ Baue Gebäude, sammle Ressourcen und verbessere deine Ausrüstung.</p>
+    <div class="grid" id="buildings"></div>
   </div>
 </div>
 
-<!-- Inventar -->
+<!-- INVENTAR -->
 <div id="inventar" class="section">
   <h2>Inventar</h2>
   <div class="box" id="inventoryList">Keine Items</div>
 </div>
 
-<!-- Ausrüstung -->
+<!-- AUSRÜSTUNG -->
 <div id="ausruestung" class="section">
   <h2>Ausrüstung</h2>
   <div class="box">
@@ -88,33 +84,8 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
   </div>
 </div>
 
-<!-- Skills -->
-<div id="skills" class="section">
-  <h2>Skills</h2>
-  <div class="box">
-    <p>Skillpunkte: <span id="skillPoints">0</span></p>
-    <div id="skillList"></div>
-  </div>
-</div>
-
-<!-- Gebäude -->
-<div id="gebaeude" class="section">
-  <h2>Gebäude</h2>
-  <div class="box">
-    <button onclick="build('Taverne')">Taverne bauen</button>
-    <button onclick="build('Schmiede')">Schmiede bauen</button>
-    <button onclick="build('Markt')">Markt bauen</button>
-    <button onclick="build('Steinbruch')">Steinbruch bauen</button>
-    <button onclick="build('Festung')">Festung bauen</button>
-    <button onclick="build('Farm')">Farm bauen</button>
-    <button onclick="build('Mine')">Mine bauen</button>
-    <button onclick="build('Lager')">Lager bauen</button>
-    <p id="buildText">Keine Gebäude gebaut</p>
-  </div>
-</div>
-
-<!-- Modal -->
-<div id="modal">
+<!-- MODAL -->
+<div id="modal" style="display:none;">
   <div class="box">
     <h2>Item Details</h2>
     <div id="itemDetails"></div>
@@ -127,6 +98,7 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
 </div>
 
 <script>
+/* ======= GLOBAL ======= */
 let level = 1;
 let gold = 50;
 let schoko = 1;
@@ -135,166 +107,50 @@ let questActive = false;
 let maxEnergy = 100;
 let energy = maxEnergy;
 let klasse = "Krieger";
-let skillPoints = 0;
-let inventory = [];
-let equipment = { weapon: null, armor: null, ring: null };
-let activeItem = null;
 
+let inventory = [];
+let equipped = { weapon: null, armor: null, helmet: null, boots: null, ring: null };
+
+/* ======= BUILDINGS ======= */
+let buildings = [
+  { id: "steinbruch", name: "Steinbruch", lvl: 0, desc: "Erhöht Ressourcen, liefert Materialien." },
+  { id: "festung", name: "Festung", lvl: 0, desc: "Erhöht Verteidigung & Stadtbonus." },
+  { id: "taverne", name: "Taverne", lvl: 0, desc: "Hier bekommst du Buffs & Quests." },
+  { id: "schmiede", name: "Schmiede", lvl: 0, desc: "Erlaubt Item-Upgrades & Crafting." },
+  { id: "bibliothek", name: "Bibliothek", lvl: 0, desc: "Erhöht Skills & Wissen." },
+  { id: "markt", name: "Markt", lvl: 0, desc: "Hier kannst du Items handeln." }
+];
+
+/* ======= ITEMS ======= */
+function createItem(rarity) {
+  const names = {
+    common: ["Eisenhelm", "Lederstiefel", "Holzschwert", "Eisenrüstung"],
+    uncommon: ["Silberhelm", "Stahlstiefel", "Stahlschwert", "Drachenleder"],
+    rare: ["Dämmerungsschwert", "Feuerhandschuhe", "Blitzring", "Eisrüstung"],
+    epic: ["Sternenstab", "Königsrüstung", "Drachenkrone", "Götterschwert"],
+    legendary: ["Axt des Zorns", "Himmelsschuppe", "Seelenklinge", "Chaosring"],
+    mystical: ["Runenstab des Windes", "Schattenrüstung", "Mondklinge", "Lichthelm"],
+    heavenly: ["Himmlische Axt", "Göttliche Rüstung", "Sternenkrone", "Himmelsstiefel"]
+  };
+  const levels = { common: 1, uncommon: 20, rare: 30, epic: 100, legendary: 150, mystical: 500, heavenly: 700 };
+  const bonus = { common: 1, uncommon: 2, rare: 4, epic: 6, legendary: 9, mystical: 12, heavenly: 16 };
+
+  const nameList = names[rarity];
+  const name = nameList[Math.floor(Math.random() * nameList.length)];
+  return {
+    id: "item_" + Date.now() + "_" + Math.floor(Math.random()*1000),
+    name: name,
+    rarity: rarity,
+    requiredLevel: levels[rarity],
+    power: bonus[rarity] + Math.floor(Math.random()*5),
+    type: ["weapon","armor","helmet","boots","ring"][Math.floor(Math.random()*5)],
+    classOnly: klasse
+  };
+}
+
+/* ======= UI ======= */
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-}
-
-function updateStatus() {
-  document.getElementById("level").innerText = level;
-  document.getElementById("gold").innerText = gold;
-  document.getElementById("energy").innerText = energy;
-  document.getElementById("maxEnergy").innerText = maxEnergy;
-  document.getElementById("schoko").innerText = schoko;
-  document.getElementById("kristalle").innerText = kristalle;
-  document.getElementById("klasse").innerText = klasse;
-  document.getElementById("skillPoints").innerText = skillPoints;
-}
-
-function acceptQuest() {
-  if (questActive) { alert("Du hast bereits eine Quest."); return; }
-  if (energy < 10) { alert("Nicht genug Energie."); return; }
-  questActive = true;
-  energy -= 10;
-  document.getElementById("questText").innerText = "Quest läuft… Monster bekämpfen.";
-  updateStatus();
-}
-
-function finishQuest() {
-  if (!questActive) { alert("Keine aktive Quest."); return; }
-  questActive = false;
-  level++;
-  gold += 20;
-  skillPoints += 1;
-  inventory.push({name: "Rüstungsteil (Gewöhnlich)", type:"armor", value:5});
-  document.getElementById("questText").innerText = "Quest abgeschlossen!";
-  updateStatus();
-  renderInventory();
-  renderEquipmentSlots();
-}
-
-function enterDungeon() {
-  if (energy < 20) { alert("Nicht genug Energie."); return; }
-  energy -= 20;
-  gold += 50;
-  kristalle += 1;
-  inventory.push({name: "Dungeon Loot (Fortgeschritten)", type:"weapon", value:10});
-  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen!";
-  updateStatus();
-  renderInventory();
-  renderEquipmentSlots();
-}
-
-function cityGuard() {
-  gold += 5;
-  updateStatus();
-}
-
-function fillEnergyWithChocolate() {
-  if (schoko < 1) { alert("Keine Schokolade."); return; }
-  schoko--;
-  energy = Math.min(maxEnergy, energy + 30);
-  updateStatus();
-}
-
-function renderInventory() {
-  const list = document.getElementById("inventoryList");
-  if (inventory.length === 0) { list.innerText = "Keine Items"; return; }
-  list.innerHTML = "";
-  inventory.forEach((item, index) => {
-    const div = document.createElement("div");
-    div.className = "item";
-    div.innerText = item.name;
-    div.onclick = () => openItem(index);
-    list.appendChild(div);
-  });
-}
-
-function renderEquipmentSlots() {
-  const slots = document.getElementById("slots");
-  slots.innerHTML = `
-    <div class="item">Waffe: ${equipment.weapon ? equipment.weapon.name : "Keine"}</div>
-    <div class="item">Rüstung: ${equipment.armor ? equipment.armor.name : "Keine"}</div>
-    <div class="item">Ring: ${equipment.ring ? equipment.ring.name : "Keine"}</div>
-  `;
-}
-
-function openItem(index) {
-  activeItem = inventory[index];
-  document.getElementById("itemDetails").innerHTML = `
-    <p>Name: ${activeItem.name}</p>
-    <p>Typ: ${activeItem.type}</p>
-    <p>Wert: ${activeItem.value}</p>
-  `;
-  document.getElementById("modal").style.display = "flex";
-}
-
-function equipItem() {
-  if (!activeItem) return;
-  if (activeItem.type === "weapon") equipment.weapon = activeItem;
-  if (activeItem.type === "armor") equipment.armor = activeItem;
-  if (activeItem.type === "ring") equipment.ring = activeItem;
-  closeModal();
-  renderEquipmentSlots();
-}
-
-function unequipItem() {
-  equipment.weapon = null;
-  equipment.armor = null;
-  equipment.ring = null;
-  closeModal();
-  renderEquipmentSlots();
-}
-
-function upgradeItem() {
-  if (!activeItem) return;
-  activeItem.value += 5;
-  closeModal();
-  renderInventory();
-}
-
-function destroyItem() {
-  if (!activeItem) return;
-  inventory = inventory.filter(i => i !== activeItem);
-  closeModal();
-  renderInventory();
-}
-
-function closeModal() {
-  document.getElementById("modal").style.display = "none";
-  activeItem = null;
-}
-
-function build(name) {
-  document.getElementById("buildText").innerText = name + " gebaut!";
-  gold -= 20;
-  updateStatus();
-}
-
-function renderSkills() {
-  const list = document.getElementById("skillList");
-  list.innerHTML = `
-    <div class="item">Stärke +1 <button onclick="addSkill(1)">+</button></div>
-    <div class="item">Intelligenz +1 <button onclick="addSkill(2)">+</button></div>
-    <div class="item">Geschick +1 <button onclick="addSkill(3)">+</button></div>
-  `;
-}
-
-function addSkill(type) {
-  if (skillPoints < 1) { alert("Keine Skillpunkte."); return; }
-  skillPoints--;
-  updateStatus();
-}
-
-updateStatus();
-renderInventory();
-renderEquipmentSlots();
-renderSkills();
-</script>
-</body>
-</html>
+  if(id === "stadt") renderBuildings();
+  if(id === "inventar") renderInventory
