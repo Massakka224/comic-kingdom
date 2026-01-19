@@ -3,25 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom</title>
+<title>Comic Kingdom - Version 5</title>
+
 <style>
-body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
-h1, h2 { text-align: center; }
-button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
-.section { display: none; }
-.section.active { display: block; }
-.box { background: white; padding: 1em; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
+  h1, h2 { text-align: center; }
+  button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .box { background: white; padding: 1em; margin-bottom: 1em; }
+  .row { display: flex; gap: 10px; }
+  .col { flex: 1; }
 </style>
 </head>
-<body>
 
-<h1>Comic Kingdom</h1>
+<body>
+<h1>Comic Kingdom - Version 5</h1>
 
 <nav>
   <button onclick="show('status')">Status</button>
   <button onclick="show('taverne')">Taverne</button>
   <button onclick="show('quests')">Quests</button>
   <button onclick="show('stadt')">Stadt</button>
+  <button onclick="show('dungeon')">Dungeons</button>
+  <button onclick="show('skills')">Skills</button>
 </nav>
 
 <div id="status" class="section active">
@@ -30,12 +35,10 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
     <p>Level: <span id="level">1</span></p>
     <p>Gold: <span id="gold">50</span></p>
     <p>Schokolade: <span id="schoko">1</span></p>
-    <p>Rüstung: Gewöhnlich</p>
-    <p>Klasse: Krieger</p>
-    <p>Schlüssel - Erde: <span id="keysEarth">0</span></p>
-    <p>Schlüssel - Wasser: <span id="keysWater">0</span></p>
-    <p>Schlüssel - Feuer: <span id="keysFire">0</span></p>
-    <p>Schlüssel - Wind: <span id="keysAir">0</span></p>
+    <p>Klasse: <span id="klasse">Krieger</span></p>
+    <p>Erfahrung: <span id="exp">0</span> / <span id="expNext">100</span></p>
+    <p>Rüstung: <span id="armor">Gewöhnlich</span></p>
+    <p>Waffe: <span id="weapon">Schwert</span></p>
   </div>
 </div>
 
@@ -53,55 +56,45 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
 
 <div id="stadt" class="section">
   <h2>Stadt</h2>
-  <p>Baue Gebäude, sammle Ressourcen und verbessere deine Ausrüstung.</p>
-  <button onclick="cityGuard()">Stadtwache (Gold)</button>
+  <div class="box">
+    <p>➡️ „Baue Gebäude, sammle Ressourcen und verbessere deine Ausrüstung.“</p>
+    <button onclick="build()">Gebäude bauen (Ressourcen)</button>
+  </div>
+</div>
 
-  <h3>Dungeons</h3>
-  <button onclick="enterDungeon(0)">Stein-Dungeon</button>
-  <button onclick="enterDungeon(1)">Wasser-Dungeon</button>
-  <button onclick="enterDungeon(2)">Feuer-Dungeon</button>
-  <button onclick="enterDungeon(3)">Wind-Dungeon</button>
+<div id="dungeon" class="section">
+  <h2>Dungeons</h2>
+  <p>Du brauchst einen Dungeon-Schlüssel, um einen Dungeon zu betreten.</p>
+  <button onclick="findKey()">Dungeon-Schlüssel finden</button>
+  <p>Schlüssel: <span id="keys">0</span></p>
+  <button onclick="enterDungeon()">Dungeon betreten</button>
+  <p id="dungeonText">Noch kein Dungeon betreten.</p>
+</div>
+
+<div id="skills" class="section">
+  <h2>Skills</h2>
+  <p>Skillpunkte: <span id="skillPoints">0</span></p>
+  <button onclick="buySkill()">Skill kaufen (10 Gold)</button>
 </div>
 
 <script>
-let player = {
-  level: 1,
-  gold: 50,
-  schoko: 1,
-  keys: { earth: 0, water: 0, fire: 0, air: 0 },
-  attack: 5,
-  defense: 3,
-  hp: 20
-};
-
+let level = 1;
+let gold = 50;
+let schoko = 1;
+let exp = 0;
+let expNext = 100;
 let questActive = false;
-let currentQuest = null;
+let keys = 0;
+let skillPoints = 0;
 
-const dungeons = [
-  { name: "Stein-Dungeon", keyType: "earth" },
-  { name: "Wasser-Dungeon", keyType: "water" },
-  { name: "Feuer-Dungeon", keyType: "fire" },
-  { name: "Wind-Dungeon", keyType: "air" }
-];
-
-const quests = [
-  { text: "Besiege 5 Kobolde", keyReward: { type: "earth", amount: 1 } },
-  { text: "Besiege 3 Wasserspinnen", keyReward: { type: "water", amount: 1 } },
-  { text: "Besiege 1 Feuerdrache", keyReward: { type: "fire", amount: 1 } },
-  { text: "Besiege 2 Windgeister", keyReward: { type: "air", amount: 1 } }
-];
-
-const monsters = [
-  { name: "Kobold", hp: 8, attack: 3, defense: 1, gold: 10, keyType: "earth", keyChance: 0.02 },
-  { name: "Wasserspinne", hp: 10, attack: 4, defense: 1, gold: 12, keyType: "water", keyChance: 0.015 },
-  { name: "Feuerdrache", hp: 20, attack: 6, defense: 2, gold: 25, keyType: "fire", keyChance: 0.01 },
-  { name: "Windgeist", hp: 12, attack: 5, defense: 2, gold: 18, keyType: "air", keyChance: 0.01 }
-];
-
-const bosses = [
-  { name: "Stein Golem", hp: 60, attack: 12, defense: 5, gold: 100, keyType: "earth" },
-  { name: "Wasser Leviathan", hp: 70, attack: 13, defense: 6, gold: 120, keyType: "water" }
-];
+let player = {
+  klasse: "Krieger",
+  weapon: "Schwert",
+  armor: "Gewöhnlich",
+  str: 10,
+  int: 5,
+  dex: 5
+};
 
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -109,23 +102,16 @@ function show(id) {
 }
 
 function updateUI() {
-  document.getElementById("level").innerText = player.level;
-  document.getElementById("gold").innerText = player.gold;
-  document.getElementById("schoko").innerText = player.schoko;
-  document.getElementById("keysEarth").innerText = player.keys.earth;
-  document.getElementById("keysWater").innerText = player.keys.water;
-  document.getElementById("keysFire").innerText = player.keys.fire;
-  document.getElementById("keysAir").innerText = player.keys.air;
-
-  localStorage.setItem("comicKingdomPlayer", JSON.stringify(player));
-}
-
-function loadGame() {
-  const saved = localStorage.getItem("comicKingdomPlayer");
-  if (saved) {
-    player = JSON.parse(saved);
-  }
-  updateUI();
+  document.getElementById("level").innerText = level;
+  document.getElementById("gold").innerText = gold;
+  document.getElementById("schoko").innerText = schoko;
+  document.getElementById("exp").innerText = exp;
+  document.getElementById("expNext").innerText = expNext;
+  document.getElementById("keys").innerText = keys;
+  document.getElementById("skillPoints").innerText = skillPoints;
+  document.getElementById("klasse").innerText = player.klasse;
+  document.getElementById("weapon").innerText = player.weapon;
+  document.getElementById("armor").innerText = player.armor;
 }
 
 function acceptQuest() {
@@ -134,8 +120,7 @@ function acceptQuest() {
     return;
   }
   questActive = true;
-  currentQuest = quests[Math.floor(Math.random() * quests.length)];
-  document.getElementById("questText").innerText = "Quest: " + currentQuest.text;
+  document.getElementById("questText").innerText = "Quest läuft… Monster bekämpfen.";
   show('quests');
 }
 
@@ -145,122 +130,157 @@ function finishQuest() {
     return;
   }
   questActive = false;
-
-  const reward = currentQuest.keyReward;
-  player.keys[reward.type] += reward.amount;
-
-  player.level++;
-  player.gold += 20;
-
-  document.getElementById("questText").innerText = "Quest abgeschlossen!";
+  exp += 50;
+  gold += 20;
+  checkLevel();
   updateUI();
+  document.getElementById("questText").innerText = "Quest abgeschlossen!";
 }
 
 function eat() {
-  if (player.gold < 10) {
+  if (gold < 10) {
     alert("Nicht genug Gold.");
     return;
   }
-  player.gold -= 10;
+  gold -= 10;
   updateUI();
   alert("Buff aktiv!");
 }
 
 function cityGuard() {
-  player.gold += 5;
+  gold += 5;
   updateUI();
 }
 
-function enterDungeon(dungeonIndex) {
-  const dungeon = dungeons[dungeonIndex];
-  const keyType = dungeon.keyType;
+function build() {
+  // Simples Ressourcensystem
+  gold += 5;
+  updateUI();
+  alert("Gebäude gebaut! (Ressourcen erhalten)");
+}
 
-  if (player.keys[keyType] <= 0) {
-    alert("Du brauchst einen " + keyType + " Schlüssel, um diesen Dungeon zu betreten.");
+function findKey() {
+  keys++;
+  updateUI();
+  alert("Dungeon-Schlüssel gefunden!");
+}
+
+function enterDungeon() {
+  if (keys <= 0) {
+    alert("Du brauchst einen Schlüssel!");
     return;
   }
-
-  player.keys[keyType]--;
-  alert("Dungeon betreten: " + dungeon.name + " (Schlüssel wurde verbraucht)");
+  keys--;
   updateUI();
-
-  // Kampf gegen Monster
-  startBattle();
+  dungeonBattle();
 }
 
-function startBattle() {
-  const monster = monsters[Math.floor(Math.random() * monsters.length)];
-  const isBoss = Math.random() < 0.1; // 10% Bosschance
-  const enemy = isBoss ? bosses[Math.floor(Math.random() * bosses.length)] : monster;
+function dungeonBattle() {
+  let enemy = {
+    name: "Kobold",
+    hp: 50,
+    atk: 5
+  };
 
-  const result = fight(player, enemy);
-
-  if (result.win) {
-    player.level++;
-    player.gold += enemy.gold;
-
-    // Schlüssel drop chance
-    if (!isBoss && Math.random() < enemy.keyChance) {
-      player.keys[enemy.keyType]++;
-      alert("Du hast einen Schlüssel bekommen: " + enemy.keyType);
-    }
-
-    // Boss special sound
-    if (isBoss) {
-      alert("Boss besiegt! (Sound: final-level-bonus)");
-    } else {
-      alert("Monster besiegt!");
-    }
-
-  } else {
-    alert("Du hast verloren!");
-  }
-
-  updateUI();
-}
-
-function fight(player, enemy) {
-  let playerHp = player.hp;
+  let playerAtk = player.str + (player.weapon === "Zweihänder Axt" ? 10 : 5);
   let enemyHp = enemy.hp;
 
-  while (playerHp > 0 && enemyHp > 0) {
-    enemyHp -= Math.max(0, player.attack - enemy.defense);
-    if (enemyHp <= 0) return { win: true };
-
-    playerHp -= Math.max(0, enemy.attack - player.defense);
+  while (enemyHp > 0) {
+    enemyHp -= playerAtk;
+    if (enemyHp <= 0) break;
+    // enemy attacks
+    // player takes damage (not implemented for simplicity)
   }
 
-  return { win: false };
+  exp += 80;
+  gold += 50;
+  skillPoints += 1;
+  checkLevel();
+  updateUI();
+  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen! Boss besiegt.";
 }
 
-loadGame();
-</script>
+function checkLevel() {
+  while (exp >= expNext) {
+    exp -= expNext;
+    level++;
+    expNext = Math.floor(expNext * 1.2);
+    gold += 20;
+    skillPoints += 1;
+    alert("Level up!");
+  }
+}
 
+function buySkill() {
+  if (gold < 10) {
+    alert("Nicht genug Gold.");
+    return;
+  }
+  gold -= 10;
+  skillPoints++;
+  updateUI();
+}
+
+// save system
+function save() {
+  const saveData = {
+    level, gold, schoko, exp, expNext, keys, skillPoints, player, questActive
+  };
+  localStorage.setItem("comicKingdomV5", JSON.stringify(saveData));
+}
+
+function load() {
+  const saveData = JSON.parse(localStorage.getItem("comicKingdomV5"));
+  if (!saveData) return;
+  level = saveData.level;
+  gold = saveData.gold;
+  schoko = saveData.schoko;
+  exp = saveData.exp;
+  expNext = saveData.expNext;
+  keys = saveData.keys;
+  skillPoints = saveData.skillPoints;
+  player = saveData.player;
+  questActive = saveData.questActive;
+  updateUI();
+}
+
+window.onload = () => {
+  load();
+  updateUI();
+  setInterval(save, 2000);
+};
+
+</script>
 </body>
 </html><!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom</title>
+<title>Comic Kingdom - Version 5</title>
+
 <style>
-body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
-h1, h2 { text-align: center; }
-button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
-.section { display: none; }
-.section.active { display: block; }
-.box { background: white; padding: 1em; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 1em; }
+  h1, h2 { text-align: center; }
+  button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .box { background: white; padding: 1em; margin-bottom: 1em; }
+  .row { display: flex; gap: 10px; }
+  .col { flex: 1; }
 </style>
 </head>
-<body>
 
-<h1>Comic Kingdom</h1>
+<body>
+<h1>Comic Kingdom - Version 5</h1>
 
 <nav>
   <button onclick="show('status')">Status</button>
   <button onclick="show('taverne')">Taverne</button>
   <button onclick="show('quests')">Quests</button>
   <button onclick="show('stadt')">Stadt</button>
+  <button onclick="show('dungeon')">Dungeons</button>
+  <button onclick="show('skills')">Skills</button>
 </nav>
 
 <div id="status" class="section active">
@@ -269,12 +289,10 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
     <p>Level: <span id="level">1</span></p>
     <p>Gold: <span id="gold">50</span></p>
     <p>Schokolade: <span id="schoko">1</span></p>
-    <p>Rüstung: Gewöhnlich</p>
-    <p>Klasse: Krieger</p>
-    <p>Schlüssel - Erde: <span id="keysEarth">0</span></p>
-    <p>Schlüssel - Wasser: <span id="keysWater">0</span></p>
-    <p>Schlüssel - Feuer: <span id="keysFire">0</span></p>
-    <p>Schlüssel - Wind: <span id="keysAir">0</span></p>
+    <p>Klasse: <span id="klasse">Krieger</span></p>
+    <p>Erfahrung: <span id="exp">0</span> / <span id="expNext">100</span></p>
+    <p>Rüstung: <span id="armor">Gewöhnlich</span></p>
+    <p>Waffe: <span id="weapon">Schwert</span></p>
   </div>
 </div>
 
@@ -292,55 +310,45 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
 
 <div id="stadt" class="section">
   <h2>Stadt</h2>
-  <p>Baue Gebäude, sammle Ressourcen und verbessere deine Ausrüstung.</p>
-  <button onclick="cityGuard()">Stadtwache (Gold)</button>
+  <div class="box">
+    <p>➡️ „Baue Gebäude, sammle Ressourcen und verbessere deine Ausrüstung.“</p>
+    <button onclick="build()">Gebäude bauen (Ressourcen)</button>
+  </div>
+</div>
 
-  <h3>Dungeons</h3>
-  <button onclick="enterDungeon(0)">Stein-Dungeon</button>
-  <button onclick="enterDungeon(1)">Wasser-Dungeon</button>
-  <button onclick="enterDungeon(2)">Feuer-Dungeon</button>
-  <button onclick="enterDungeon(3)">Wind-Dungeon</button>
+<div id="dungeon" class="section">
+  <h2>Dungeons</h2>
+  <p>Du brauchst einen Dungeon-Schlüssel, um einen Dungeon zu betreten.</p>
+  <button onclick="findKey()">Dungeon-Schlüssel finden</button>
+  <p>Schlüssel: <span id="keys">0</span></p>
+  <button onclick="enterDungeon()">Dungeon betreten</button>
+  <p id="dungeonText">Noch kein Dungeon betreten.</p>
+</div>
+
+<div id="skills" class="section">
+  <h2>Skills</h2>
+  <p>Skillpunkte: <span id="skillPoints">0</span></p>
+  <button onclick="buySkill()">Skill kaufen (10 Gold)</button>
 </div>
 
 <script>
-let player = {
-  level: 1,
-  gold: 50,
-  schoko: 1,
-  keys: { earth: 0, water: 0, fire: 0, air: 0 },
-  attack: 5,
-  defense: 3,
-  hp: 20
-};
-
+let level = 1;
+let gold = 50;
+let schoko = 1;
+let exp = 0;
+let expNext = 100;
 let questActive = false;
-let currentQuest = null;
+let keys = 0;
+let skillPoints = 0;
 
-const dungeons = [
-  { name: "Stein-Dungeon", keyType: "earth" },
-  { name: "Wasser-Dungeon", keyType: "water" },
-  { name: "Feuer-Dungeon", keyType: "fire" },
-  { name: "Wind-Dungeon", keyType: "air" }
-];
-
-const quests = [
-  { text: "Besiege 5 Kobolde", keyReward: { type: "earth", amount: 1 } },
-  { text: "Besiege 3 Wasserspinnen", keyReward: { type: "water", amount: 1 } },
-  { text: "Besiege 1 Feuerdrache", keyReward: { type: "fire", amount: 1 } },
-  { text: "Besiege 2 Windgeister", keyReward: { type: "air", amount: 1 } }
-];
-
-const monsters = [
-  { name: "Kobold", hp: 8, attack: 3, defense: 1, gold: 10, keyType: "earth", keyChance: 0.02 },
-  { name: "Wasserspinne", hp: 10, attack: 4, defense: 1, gold: 12, keyType: "water", keyChance: 0.015 },
-  { name: "Feuerdrache", hp: 20, attack: 6, defense: 2, gold: 25, keyType: "fire", keyChance: 0.01 },
-  { name: "Windgeist", hp: 12, attack: 5, defense: 2, gold: 18, keyType: "air", keyChance: 0.01 }
-];
-
-const bosses = [
-  { name: "Stein Golem", hp: 60, attack: 12, defense: 5, gold: 100, keyType: "earth" },
-  { name: "Wasser Leviathan", hp: 70, attack: 13, defense: 6, gold: 120, keyType: "water" }
-];
+let player = {
+  klasse: "Krieger",
+  weapon: "Schwert",
+  armor: "Gewöhnlich",
+  str: 10,
+  int: 5,
+  dex: 5
+};
 
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
@@ -348,23 +356,16 @@ function show(id) {
 }
 
 function updateUI() {
-  document.getElementById("level").innerText = player.level;
-  document.getElementById("gold").innerText = player.gold;
-  document.getElementById("schoko").innerText = player.schoko;
-  document.getElementById("keysEarth").innerText = player.keys.earth;
-  document.getElementById("keysWater").innerText = player.keys.water;
-  document.getElementById("keysFire").innerText = player.keys.fire;
-  document.getElementById("keysAir").innerText = player.keys.air;
-
-  localStorage.setItem("comicKingdomPlayer", JSON.stringify(player));
-}
-
-function loadGame() {
-  const saved = localStorage.getItem("comicKingdomPlayer");
-  if (saved) {
-    player = JSON.parse(saved);
-  }
-  updateUI();
+  document.getElementById("level").innerText = level;
+  document.getElementById("gold").innerText = gold;
+  document.getElementById("schoko").innerText = schoko;
+  document.getElementById("exp").innerText = exp;
+  document.getElementById("expNext").innerText = expNext;
+  document.getElementById("keys").innerText = keys;
+  document.getElementById("skillPoints").innerText = skillPoints;
+  document.getElementById("klasse").innerText = player.klasse;
+  document.getElementById("weapon").innerText = player.weapon;
+  document.getElementById("armor").innerText = player.armor;
 }
 
 function acceptQuest() {
@@ -373,8 +374,7 @@ function acceptQuest() {
     return;
   }
   questActive = true;
-  currentQuest = quests[Math.floor(Math.random() * quests.length)];
-  document.getElementById("questText").innerText = "Quest: " + currentQuest.text;
+  document.getElementById("questText").innerText = "Quest läuft… Monster bekämpfen.";
   show('quests');
 }
 
@@ -384,96 +384,126 @@ function finishQuest() {
     return;
   }
   questActive = false;
-
-  const reward = currentQuest.keyReward;
-  player.keys[reward.type] += reward.amount;
-
-  player.level++;
-  player.gold += 20;
-
-  document.getElementById("questText").innerText = "Quest abgeschlossen!";
+  exp += 50;
+  gold += 20;
+  checkLevel();
   updateUI();
+  document.getElementById("questText").innerText = "Quest abgeschlossen!";
 }
 
 function eat() {
-  if (player.gold < 10) {
+  if (gold < 10) {
     alert("Nicht genug Gold.");
     return;
   }
-  player.gold -= 10;
+  gold -= 10;
   updateUI();
   alert("Buff aktiv!");
 }
 
 function cityGuard() {
-  player.gold += 5;
+  gold += 5;
   updateUI();
 }
 
-function enterDungeon(dungeonIndex) {
-  const dungeon = dungeons[dungeonIndex];
-  const keyType = dungeon.keyType;
+function build() {
+  // Simples Ressourcensystem
+  gold += 5;
+  updateUI();
+  alert("Gebäude gebaut! (Ressourcen erhalten)");
+}
 
-  if (player.keys[keyType] <= 0) {
-    alert("Du brauchst einen " + keyType + " Schlüssel, um diesen Dungeon zu betreten.");
+function findKey() {
+  keys++;
+  updateUI();
+  alert("Dungeon-Schlüssel gefunden!");
+}
+
+function enterDungeon() {
+  if (keys <= 0) {
+    alert("Du brauchst einen Schlüssel!");
     return;
   }
-
-  player.keys[keyType]--;
-  alert("Dungeon betreten: " + dungeon.name + " (Schlüssel wurde verbraucht)");
+  keys--;
   updateUI();
-
-  // Kampf gegen Monster
-  startBattle();
+  dungeonBattle();
 }
 
-function startBattle() {
-  const monster = monsters[Math.floor(Math.random() * monsters.length)];
-  const isBoss = Math.random() < 0.1; // 10% Bosschance
-  const enemy = isBoss ? bosses[Math.floor(Math.random() * bosses.length)] : monster;
+function dungeonBattle() {
+  let enemy = {
+    name: "Kobold",
+    hp: 50,
+    atk: 5
+  };
 
-  const result = fight(player, enemy);
-
-  if (result.win) {
-    player.level++;
-    player.gold += enemy.gold;
-
-    // Schlüssel drop chance
-    if (!isBoss && Math.random() < enemy.keyChance) {
-      player.keys[enemy.keyType]++;
-      alert("Du hast einen Schlüssel bekommen: " + enemy.keyType);
-    }
-
-    // Boss special sound
-    if (isBoss) {
-      alert("Boss besiegt! (Sound: final-level-bonus)");
-    } else {
-      alert("Monster besiegt!");
-    }
-
-  } else {
-    alert("Du hast verloren!");
-  }
-
-  updateUI();
-}
-
-function fight(player, enemy) {
-  let playerHp = player.hp;
+  let playerAtk = player.str + (player.weapon === "Zweihänder Axt" ? 10 : 5);
   let enemyHp = enemy.hp;
 
-  while (playerHp > 0 && enemyHp > 0) {
-    enemyHp -= Math.max(0, player.attack - enemy.defense);
-    if (enemyHp <= 0) return { win: true };
-
-    playerHp -= Math.max(0, enemy.attack - player.defense);
+  while (enemyHp > 0) {
+    enemyHp -= playerAtk;
+    if (enemyHp <= 0) break;
+    // enemy attacks
+    // player takes damage (not implemented for simplicity)
   }
 
-  return { win: false };
+  exp += 80;
+  gold += 50;
+  skillPoints += 1;
+  checkLevel();
+  updateUI();
+  document.getElementById("dungeonText").innerText = "Dungeon abgeschlossen! Boss besiegt.";
 }
 
-loadGame();
-</script>
+function checkLevel() {
+  while (exp >= expNext) {
+    exp -= expNext;
+    level++;
+    expNext = Math.floor(expNext * 1.2);
+    gold += 20;
+    skillPoints += 1;
+    alert("Level up!");
+  }
+}
 
+function buySkill() {
+  if (gold < 10) {
+    alert("Nicht genug Gold.");
+    return;
+  }
+  gold -= 10;
+  skillPoints++;
+  updateUI();
+}
+
+// save system
+function save() {
+  const saveData = {
+    level, gold, schoko, exp, expNext, keys, skillPoints, player, questActive
+  };
+  localStorage.setItem("comicKingdomV5", JSON.stringify(saveData));
+}
+
+function load() {
+  const saveData = JSON.parse(localStorage.getItem("comicKingdomV5"));
+  if (!saveData) return;
+  level = saveData.level;
+  gold = saveData.gold;
+  schoko = saveData.schoko;
+  exp = saveData.exp;
+  expNext = saveData.expNext;
+  keys = saveData.keys;
+  skillPoints = saveData.skillPoints;
+  player = saveData.player;
+  questActive = saveData.questActive;
+  updateUI();
+}
+
+window.onload = () => {
+  load();
+  updateUI();
+  setInterval(save, 2000);
+};
+
+</script>
 </body>
 </html>
