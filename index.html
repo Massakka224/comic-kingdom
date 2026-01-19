@@ -15,7 +15,6 @@ button { width: 100%; padding: 1em; margin: 0.5em 0; font-size: 1.1em; }
 .item:hover { background: #eee; }
 nav { position: fixed; top: 0; left: 0; right: 0; background: #fff; padding: 10px; z-index: 10; }
 body { padding-top: 70px; }
-#modal { position: fixed; top: 10%; left: 10%; width: 80%; display: none; z-index: 20; }
 </style>
 </head>
 <body>
@@ -88,7 +87,7 @@ body { padding-top: 70px; }
 </div>
 
 <!-- Modal -->
-<div id="modal">
+<div id="modal" style="display:none;">
 <div class="box">
 <h2>Item Details</h2>
 <div id="itemDetails"></div>
@@ -101,32 +100,6 @@ body { padding-top: 70px; }
 </div>
 
 <script>
-let soundEnabled = false;
-
-// ----------------- SAVE SYSTEM -----------------
-function saveGame() {
-  const save = {
-    level, gold, schoko, kristalle, questActive, maxEnergy, energy, klasse,
-    inventory, equipped
-  };
-  localStorage.setItem("comicKingdomSave", JSON.stringify(save));
-}
-
-function loadGame() {
-  const save = JSON.parse(localStorage.getItem("comicKingdomSave"));
-  if (!save) return;
-  level = save.level;
-  gold = save.gold;
-  schoko = save.schoko;
-  kristalle = save.kristalle;
-  questActive = save.questActive;
-  maxEnergy = save.maxEnergy;
-  energy = save.energy;
-  klasse = save.klasse;
-  inventory = save.inventory;
-  equipped = save.equipped;
-}
-
 let level = 1;
 let gold = 50;
 let schoko = 1;
@@ -142,13 +115,7 @@ let equipped = { head: null, body: null, weapon: null, ring: null, boots: null }
 let selectedItem = null;
 
 // SOUNDS
-const soundLevelComplete = new Audio("https://drive.google.com/uc?export=download&id=1QqS3adhTdqM1ldgZ3BY61kc15H0p44Eu");
-const soundBossWin = new Audio("https://drive.google.com/uc?export=download&id=1TZo2sVyi_rpqxt7uj3CntBfjTAPo-o-N");
-
-// Sound automatisch aktivieren bei erstem Klick
-document.addEventListener("click", () => {
-  soundEnabled = true;
-});
+const soundLevelComplete = new Audio("sounds/game-level-completed.mp3");
 
 // UI functions
 function show(id) {
@@ -212,25 +179,21 @@ function finishQuest() {
   }
   questActive = false;
   level++;
-  if (soundEnabled) soundLevelComplete.play();
+  soundLevelComplete.play(); // LEVEL COMPLETE SOUND
   gold += 20;
   document.getElementById("level").innerText = level;
   document.getElementById("questText").innerText = "Quest abgeschlossen!";
   rewardItems("quest");
-  saveGame();
 }
 
 function enterDungeon() {
   document.getElementById("dungeonText").innerText = "Dungeon betreten... Boss kommt!";
-  if (soundEnabled) soundBossWin.play();
   rewardItems("dungeon");
-  saveGame();
 }
 
 function cityGuard() {
   gold += 10;
   document.getElementById("gold").innerText = gold;
-  saveGame();
 }
 
 function fillEnergyWithChocolate() {
@@ -239,7 +202,6 @@ function fillEnergyWithChocolate() {
   energy = maxEnergy;
   document.getElementById("energy").innerText = energy;
   document.getElementById("schoko").innerText = schoko;
-  saveGame();
 }
 
 function rewardItems(source) {
@@ -289,14 +251,12 @@ function equipItem() {
   equipped.weapon = it;
   updateSlots();
   closeModal();
-  saveGame();
 }
 
 function unequipItem() {
   equipped.weapon = null;
   updateSlots();
   closeModal();
-  saveGame();
 }
 
 function upgradeItem() {
@@ -304,7 +264,6 @@ function upgradeItem() {
   inventory[selectedItem].bonus += 1;
   alert("Item verbessert!");
   updateInventory();
-  saveGame();
 }
 
 function destroyItem() {
@@ -313,11 +272,7 @@ function destroyItem() {
   selectedItem = null;
   updateInventory();
   closeModal();
-  saveGame();
 }
-
-// Load save
-loadGame();
 
 // Initial UI
 document.getElementById("gold").innerText = gold;
