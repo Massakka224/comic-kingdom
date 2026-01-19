@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 10</title>
+<title>Comic Kingdom – Version 11</title>
 
 <style>
 body {
@@ -20,7 +20,7 @@ header {
 }
 
 nav {
-  display: flex;
+  display: none;
   gap: 0.5em;
   padding: 0.5em;
   background: #444;
@@ -33,10 +33,6 @@ nav button {
   background: #666;
   color: white;
   border-radius: 6px;
-}
-
-nav button:hover {
-  background: #888;
 }
 
 .section {
@@ -55,10 +51,16 @@ nav button:hover {
   border-radius: 10px;
 }
 
-.building {
-  border: 1px solid #ccc;
-  padding: 0.8em;
+.class-box {
+  border: 2px solid #ccc;
+  padding: 1em;
   margin: 0.5em 0;
+  cursor: pointer;
+}
+
+.class-box.selected {
+  border-color: green;
+  background: #eaffea;
 }
 </style>
 </head>
@@ -67,22 +69,56 @@ nav button:hover {
 
 <header>
   <h1>Comic Kingdom</h1>
-  <p>Version 10 – Festung</p>
+  <p>Version 11 – Charakter-Erstellung</p>
 </header>
 
-<nav>
+<!-- CHARAKTER ERSTELLEN -->
+<div id="creation" class="section active">
+
+  <div class="box">
+    <h2>Charakter erstellen</h2>
+
+    <label>Name:</label><br>
+    <input id="playerName" placeholder="Dein Name"><br><br>
+
+    <h3>Klasse wählen</h3>
+
+    <div class="class-box" onclick="selectClass('Krieger', this)">
+      <b>Krieger</b><br>
+      Viel Leben, starke Waffen
+    </div>
+
+    <div class="class-box" onclick="selectClass('Magier', this)">
+      <b>Magier</b><br>
+      Hoher Schaden, wenig Leben
+    </div>
+
+    <div class="class-box" onclick="selectClass('Nekromant', this)">
+      <b>Nekromant</b><br>
+      Beschwört Untote, Flüche
+    </div>
+
+    <br>
+    <button onclick="startGame()">Spiel starten</button>
+  </div>
+
+</div>
+
+<!-- NAVIGATION -->
+<nav id="menu">
   <button onclick="show('status')">Status</button>
   <button onclick="show('taverne')">Taverne</button>
   <button onclick="show('stadt')">Stadt</button>
 </nav>
 
 <!-- STATUS -->
-<div id="status" class="section active">
+<div id="status" class="section">
   <div class="box">
+    <p>Name: <b><span id="name"></span></b></p>
+    <p>Klasse: <b><span id="klasse"></span></b></p>
     <p>Level: <b><span id="level">1</span></b></p>
     <p>Gold: <b><span id="gold">50</span></b></p>
-    <p>Energie: <b><span id="energy">100</span></b> / 100</p>
-    <p>Festungsbonus: <b><span id="bonus">0%</span></b></p>
+    <p>Energie: <b><span id="energy">100</span></b></p>
   </div>
 </div>
 
@@ -90,106 +126,77 @@ nav button:hover {
 <div id="taverne" class="section">
   <div class="box">
     <h2>Quests</h2>
-
-    <button onclick="quest(10,5)">Kleine Quest (10 Energie)</button>
-    <button onclick="quest(20,12)">Mittlere Quest (20 Energie)</button>
-    <button onclick="quest(30,20)">Große Quest (30 Energie)</button>
-
+    <button onclick="quest()">Quest machen</button>
     <p id="questText"></p>
   </div>
 </div>
 
 <!-- STADT -->
 <div id="stadt" class="section">
-
-  <!-- FESTUNG -->
   <div class="box">
     <h2>🏰 Festung</h2>
-    <p>
-      Die Festung ist das Herz deines Reiches.<br>
-      Jeder Ausbau erhöht deine Gold- und Quest-Belohnungen.
-    </p>
-
-    <p>Level: <b><span id="fortressLevel">1</span></b></p>
-    <p>Bonus: <b><span id="fortressBonus">+0%</span></b></p>
-    <p>Nächster Ausbau kostet: <b><span id="fortressCost">100</span> Gold</b></p>
-
-    <button onclick="upgradeFortress()">Festung ausbauen</button>
+    <p>Level: <span id="fortressLevel">1</span></p>
   </div>
-
-  <!-- KOMMENDE GEBÄUDE -->
-  <div class="box">
-    <h2>Weitere Gebäude</h2>
-    <ul>
-      <li>⚒ Schmiede – Item verbessern (kommt)</li>
-      <li>🏪 Markt – Handel (kommt)</li>
-      <li>🌾 Farm – Ressourcen (kommt)</li>
-      <li>🏟 Arena – PvP (kommt)</li>
-    </ul>
-  </div>
-
 </div>
 
 <script>
-let level = 1;
-let gold = 50;
-let energy = 100;
+let player = {
+  name: "",
+  klasse: "",
+  level: 1,
+  gold: 50,
+  energy: 100
+};
 
-let fortressLevel = 1;
-let fortressBonus = 0;
+let selectedClass = "";
+
+function selectClass(name, el) {
+  document.querySelectorAll('.class-box').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedClass = name;
+}
+
+function startGame() {
+  let name = document.getElementById("playerName").value;
+
+  if (!name || !selectedClass) {
+    alert("Name und Klasse wählen!");
+    return;
+  }
+
+  player.name = name;
+  player.klasse = selectedClass;
+
+  document.getElementById("name").innerText = player.name;
+  document.getElementById("klasse").innerText = player.klasse;
+
+  document.getElementById("creation").style.display = "none";
+  document.getElementById("menu").style.display = "flex";
+
+  show('status');
+}
 
 function show(id) {
   document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
 
-function updateUI() {
-  document.getElementById("level").innerText = level;
-  document.getElementById("gold").innerText = gold;
-  document.getElementById("energy").innerText = energy;
-
-  document.getElementById("fortressLevel").innerText = fortressLevel;
-  document.getElementById("fortressBonus").innerText = "+" + fortressBonus + "%";
-  document.getElementById("bonus").innerText = fortressBonus + "%";
-
-  document.getElementById("fortressCost").innerText =
-    fortressLevel * 100;
-}
-
-function quest(cost, reward) {
-  if (energy < cost) {
-    document.getElementById("questText").innerText = "Nicht genug Energie!";
+function quest() {
+  if (player.energy < 10) {
+    document.getElementById("questText").innerText = "Keine Energie!";
     return;
   }
 
-  energy -= cost;
+  player.energy -= 10;
+  player.gold += 15;
+  player.level += 1;
 
-  let bonusGold = Math.floor(reward * (fortressBonus / 100));
-  gold += reward + bonusGold;
-  level += 1;
+  document.getElementById("energy").innerText = player.energy;
+  document.getElementById("gold").innerText = player.gold;
+  document.getElementById("level").innerText = player.level;
 
-  document.getElementById("questText").innerText =
-    "Quest abgeschlossen! +" + (reward + bonusGold) + " Gold";
-
-  updateUI();
+  document.getElementById("questText").innerText = "Quest abgeschlossen!";
 }
-
-function upgradeFortress() {
-  let cost = fortressLevel * 100;
-
-  if (gold < cost) {
-    alert("Nicht genug Gold!");
-    return;
-  }
-
-  gold -= cost;
-  fortressLevel += 1;
-  fortressBonus += 2;
-
-  updateUI();
-}
-
-updateUI();
 </script>
 
 </body>
