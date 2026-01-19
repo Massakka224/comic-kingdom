@@ -2,195 +2,154 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 8.1</title>
-
+<title>RPG Version 8</title>
 <style>
-body { font-family: Arial, sans-serif; background:#f2f2f2; margin:0 }
-h1,h2,h3{text-align:center}
-button{padding:10px;margin:5px;width:100%;font-size:16px}
-.section{display:none;padding:20px}
-.section.active{display:block}
-.box{background:#fff;padding:15px;margin:10px auto;border-radius:10px;max-width:400px}
-.item{border:1px solid #ccc;padding:8px;margin:5px 0;cursor:pointer}
-.item:hover{background:#eee}
-nav{background:#fff;padding:5px;position:sticky;top:0}
+body { font-family: Arial; background:#222; color:#eee; padding:20px }
+button { margin:4px; padding:6px }
+.box { border:1px solid #555; padding:10px; margin:10px 0 }
+.item { cursor:pointer; padding:4px }
+.item:hover { background:#333 }
 </style>
 </head>
-
 <body>
 
-<!-- CHARAKTERAUSWAHL -->
-<div id="charSelect" class="section active">
-<h1>Comic Kingdom</h1>
+<h1>Fantasy RPG</h1>
 
-<div class="box">
-<h3>Charakter auswählen</h3>
-<div id="charList"></div>
-</div>
-
-<div class="box">
-<h3>Neuen Charakter erstellen</h3>
-<input id="newName" placeholder="Name" style="width:100%;padding:8px"><br><br>
-<select id="newClass" style="width:100%;padding:8px">
-<option>Krieger</option>
-<option>Magier</option>
-<option>Kundschafter</option>
-<option>Assassine</option>
-<option>Berserker</option>
-<option>Nekromant</option>
-</select><br><br>
-<button onclick="createCharacter()">Charakter erstellen</button>
-</div>
-</div>
-
-<!-- SPIEL -->
-<div id="game" class="section">
-
-<nav>
-<button onclick="show('status')">Status</button>
-<button onclick="show('quests')">Quests</button>
-<button onclick="show('dungeon')">Dungeon</button>
-<button onclick="show('stadt')">Stadt</button>
-<button onclick="show('inventar')">Inventar</button>
-<button onclick="show('ausruestung')">Ausrüstung</button>
-<button onclick="saveGame()">💾 Speichern</button>
-</nav>
-
-<div id="status" class="section active">
-<div class="box">
-<p>Name: <span id="pname"></span></p>
-<p>Klasse: <span id="pclass"></span></p>
-<p>Level: <span id="plevel"></span></p>
-<p>Gold: <span id="pgold"></span></p>
-</div>
-</div>
-
-<div id="quests" class="section">
-<div class="box">
-<button onclick="doQuest()">Quest abschließen</button>
-<p id="qtext"></p>
-</div>
-</div>
-
-<div id="dungeon" class="section">
-<div class="box">
-<button onclick="doDungeon()">Dungeon betreten</button>
-<p id="dtext"></p>
-</div>
-</div>
-
-<div id="stadt" class="section">
-<div class="box">
-<button onclick="alert('Taverne – Buffs später')">🍺 Taverne</button>
-<button onclick="alert('Schmiede – Upgrades später')">⚒ Schmiede</button>
-<button onclick="alert('Festung – Boni später')">🏰 Festung</button>
-</div>
-</div>
-
-<div id="inventar" class="section">
-<div class="box" id="inv"></div>
-</div>
-
-<div id="ausruestung" class="section">
-<div class="box" id="equip"></div>
-</div>
-
-</div>
+<div id="charScreen" class="box"></div>
+<div id="gameScreen" class="box" style="display:none"></div>
 
 <script>
-let characters = JSON.parse(localStorage.getItem("ck_chars")) || [];
+/* ---------- DATEN ---------- */
+let chars = JSON.parse(localStorage.getItem("chars")) || [];
 let currentChar = null;
 
-/* ===== CHARAKTER ===== */
-function renderCharList(){
- let list=document.getElementById("charList");
- list.innerHTML="";
- if(characters.length===0) list.innerHTML="<p>Keine Charaktere</p>";
- characters.forEach((c,i)=>{
-  let d=document.createElement("div");
-  d.className="item";
-  d.innerHTML=`${c.name} (Lvl ${c.level} ${c.cls})<br>
-  <button onclick="selectChar(${i})">Spielen</button>
-  <button onclick="deleteChar(${i})">Löschen</button>`;
-  list.appendChild(d);
+/* ---------- START ---------- */
+renderCharScreen();
+
+/* ---------- CHAR SCREEN ---------- */
+function renderCharScreen(){
+ const d = document.getElementById("charScreen");
+ d.innerHTML = "<h2>Charakterauswahl</h2>";
+
+ chars.forEach((c,i)=>{
+  const b = document.createElement("button");
+  b.textContent = c.name+" ("+c.cls+")";
+  b.onclick = ()=>startGame(i);
+  d.appendChild(b);
+
+  const del = document.createElement("button");
+  del.textContent="X";
+  del.onclick=()=>{chars.splice(i,1);save();renderCharScreen();}
+  d.appendChild(del);
  });
-}
 
-function createCharacter(){
- let name=newName.value.trim();
- let cls=newClass.value;
- if(!name) return alert("Name fehlt");
- characters.push({
-  name,cls,level:1,gold:50,inventory:[],equipped:null
+ d.innerHTML += "<hr>";
+
+ const name = document.createElement("input");
+ name.placeholder="Name";
+
+ const cls = document.createElement("select");
+ ["Krieger","Magier","Assassine","Nekromant"].forEach(c=>{
+  const o=document.createElement("option");
+  o.textContent=c; cls.appendChild(o);
  });
- saveChars();
- renderCharList();
+
+ const btn = document.createElement("button");
+ btn.textContent="Neuer Charakter";
+ btn.onclick=()=>{
+  chars.push({
+   name:name.value||"Held",
+   cls:cls.value,
+   level:1,
+   gold:0,
+   inventory:[],
+   equipped:null
+  });
+  save(); renderCharScreen();
+ };
+
+ d.append(name,cls,btn);
 }
 
-function selectChar(i){
- currentChar=characters[i];
- startGame();
-}
-
-function deleteChar(i){
- if(confirm("Charakter löschen?")){
-  characters.splice(i,1);
-  saveChars();renderCharList();
- }
-}
-
-function saveChars(){
- localStorage.setItem("ck_chars",JSON.stringify(characters));
-}
-
-/* ===== SPIEL ===== */
-function startGame(){
- charSelect.classList.remove("active");
- game.classList.add("active");
- show("status");
+/* ---------- START GAME ---------- */
+function startGame(i){
+ currentChar = chars[i];
+ document.getElementById("charScreen").style.display="none";
+ document.getElementById("gameScreen").style.display="block";
  updateUI();
 }
 
-function show(id){
- document.querySelectorAll("#game .section").forEach(s=>s.classList.remove("active"));
- document.getElementById(id).classList.add("active");
-}
-
+/* ---------- UI ---------- */
 function updateUI(){
- pname.textContent=currentChar.name;
- pclass.textContent=currentChar.cls;
- plevel.textContent=currentChar.level;
- pgold.textContent=currentChar.gold;
+ const g = document.getElementById("gameScreen");
+ g.innerHTML = `
+ <h2>${currentChar.name} – ${currentChar.cls}</h2>
+ Level: ${currentChar.level}<br>
+ Gold: ${currentChar.gold}<br>
+ Ausgerüstet: ${currentChar.equipped ? currentChar.equipped.name : "nichts"}<br><br>
 
- inv.innerHTML="";
+ <button onclick="completeQuest()">Quest abschließen</button>
+
+ <h3>Inventar</h3>
+ <div id="inv"></div>
+ `;
+ renderInventory();
+}
+
+/* ---------- INVENTAR ---------- */
+function renderInventory(){
+ const d=document.getElementById("inv");
+ d.innerHTML="";
  currentChar.inventory.forEach(it=>{
-  let d=document.createElement("div");
-  d.className="item";
-  d.textContent=it;
-  inv.appendChild(d);
+  const div=document.createElement("div");
+  div.className="item";
+  div.textContent=`${it.name} (+${it.power})`;
+  div.onclick=()=>openItem(it);
+  d.appendChild(div);
  });
-
- equip.textContent=currentChar.equipped || "Nichts ausgerüstet";
 }
 
-function doQuest(){
+/* ---------- ITEM ---------- */
+function openItem(item){
+ if(item.classReq!==currentChar.cls){
+  alert("Falsche Klasse");
+  return;
+ }
+ if(confirm(`${item.name}\nPower: ${item.power}\nAusrüsten?`)){
+  currentChar.equipped=item;
+  save(); updateUI();
+ }
+}
+
+/* ---------- QUEST ---------- */
+function completeQuest(){
  currentChar.level++;
- currentChar.gold+=20;
- currentChar.inventory.push("Beute-Item");
- qtext.textContent="Quest erledigt!";
- saveChars();updateUI();
+ currentChar.gold+=10;
+ currentChar.inventory.push(generateItem());
+ save(); updateUI();
 }
 
-function doDungeon(){
- currentChar.level+=2;
- currentChar.gold+=50;
- currentChar.inventory.push("Dungeon-Item");
- dtext.textContent="Dungeon geschafft!";
- saveChars();updateUI();
+/* ---------- ITEM GENERATOR ---------- */
+function generateItem(){
+ const pool={
+  Krieger:["Schwert","Axt"],
+  Magier:["Zauberstab"],
+  Assassine:["Dolch"],
+  Nekromant:["Totenschädel-Stab"]
+ };
+ const base=pool[currentChar.cls][0];
+ return{
+  id:Date.now()+Math.random(),
+  name:base+" des Levels "+currentChar.level,
+  power:Math.floor(Math.random()*5)+1,
+  classReq:currentChar.cls
+ };
 }
 
-renderCharList();
+/* ---------- SAVE ---------- */
+function save(){
+ localStorage.setItem("chars",JSON.stringify(chars));
+}
 </script>
 
 </body>
