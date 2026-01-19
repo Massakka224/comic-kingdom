@@ -4,43 +4,75 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fantasy RPG</title>
+
 <style>
 body {
   margin: 0;
+  background: #121212;
+  color: white;
   font-family: Arial, sans-serif;
-  background: #1e1e1e;
-  color: #fff;
 }
+
 .container {
   max-width: 600px;
   margin: auto;
   padding: 20px;
 }
+
 .box {
-  background: #2a2a2a;
+  background: #1f1f1f;
   padding: 15px;
-  border-radius: 10px;
+  border-radius: 12px;
   margin-bottom: 15px;
 }
+
+.character {
+  border: 2px solid #444;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 10px;
+}
+
 button {
-  padding: 8px 12px;
-  margin: 4px;
+  width: 100%;
+  padding: 14px;
+  margin-top: 6px;
+  font-size: 16px;
+  border-radius: 8px;
   border: none;
-  border-radius: 6px;
-  cursor: pointer;
 }
-button.play { background: #4caf50; }
-button.delete { background: #f44336; }
-button.create { background: #2196f3; }
+
+.play {
+  background: #4CAF50;
+  color: black;
+  font-weight: bold;
+}
+
+.delete {
+  background: #E53935;
+  color: white;
+}
+
+.create {
+  background: #2196F3;
+  color: white;
+}
+
 input, select {
-  padding: 6px;
-  margin-right: 6px;
+  width: 100%;
+  padding: 10px;
+  margin-top: 6px;
+  border-radius: 6px;
+  border: none;
 }
-.hidden { display: none; }
+
+.hidden {
+  display: none;
+}
 </style>
 </head>
-<body>
 
+<body>
 <div class="container">
 
 <h1>Fantasy RPG</h1>
@@ -48,6 +80,7 @@ input, select {
 <!-- CHARAKTERAUSWAHL -->
 <div id="characterScreen" class="box">
   <h2>Charakterauswahl</h2>
+
   <div id="characterList"></div>
 
   <hr>
@@ -59,7 +92,8 @@ input, select {
     <option>Späher</option>
     <option>Nekromant</option>
   </select>
-  <button class="create" onclick="createCharacter()">Neuer Charakter</button>
+
+  <button class="create" onclick="createCharacter()">Neuen Charakter erstellen</button>
 </div>
 
 <!-- SPIEL -->
@@ -72,9 +106,9 @@ input, select {
   </div>
 
   <div class="box">
-    <button onclick="doQuest()">Quest machen</button>
+    <button class="play" onclick="doQuest()">Quest machen</button>
     <button onclick="saveGame()">Speichern</button>
-    <button onclick="logout()">Zurück zur Auswahl</button>
+    <button class="delete" onclick="logout()">Zurück zur Auswahl</button>
   </div>
 </div>
 
@@ -93,51 +127,4 @@ function renderCharacters() {
   list.innerHTML = "";
 
   if (characters.length === 0) {
-    list.innerHTML = "<p>Keine Charaktere vorhanden</p>";
-    return;
-  }
-
-  characters.forEach((c, i) => {
-    const div = document.createElement("div");
-    div.innerHTML = `
-      <b>${c.name}</b> (${c.class})
-      <br>
-      <button class="play" onclick="playCharacter(${i})">Spielen</button>
-      <button class="delete" onclick="deleteCharacter(${i})">X</button>
-      <hr>
-    `;
-    list.appendChild(div);
-  });
-}
-
-function createCharacter() {
-  const name = document.getElementById("charName").value.trim();
-  const cls = document.getElementById("charClass").value;
-
-  if (!name) {
-    alert("Name fehlt");
-    return;
-  }
-
-  characters.push({
-    name,
-    class: cls,
-    level: 1,
-    gold: 0
-  });
-
-  saveCharacters();
-  renderCharacters();
-  document.getElementById("charName").value = "";
-}
-
-function deleteCharacter(i) {
-  if (!confirm("Charakter wirklich löschen?")) return;
-  characters.splice(i, 1);
-  saveCharacters();
-  renderCharacters();
-}
-
-function playCharacter(i) {
-  activeCharacter = characters[i];
-  document.getElementBy
+    list.innerHTML =
