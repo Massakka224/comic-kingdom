@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 11</title>
+<title>Comic Kingdom – Version 11.2</title>
 
 <style>
 body {
@@ -63,9 +63,9 @@ nav button {
 <div class="box">
 <h2>Status</h2>
 <p>Klasse: <b id="klasse"></b></p>
-<p>Level: <span id="level"></span></p>
-<p>XP: <span id="xp"></span></p>
-<p>Gold: <span id="gold"></span></p>
+<p>Level: <b id="level"></b></p>
+<p>Erfahrung: <b id="xp"></b></p>
+<p>Gold: <b id="gold"></b></p>
 </div>
 </div>
 
@@ -82,11 +82,10 @@ nav button {
 <div id="stadt" class="section">
 <div class="box">
 <h2>Stadt</h2>
-<p>Gebäude (werden erweitert):</p>
 <ul>
-<li>Schmiede</li>
-<li>Taverne</li>
-<li>Magier</li>
+<li>Schmiede (Upgrade)</li>
+<li>Taverne (Quests)</li>
+<li>Magier (Verzaubern)</li>
 </ul>
 </div>
 </div>
@@ -102,39 +101,20 @@ nav button {
 <script>
 // ================= SPIELER =================
 const player = {
-  class: "Krieger", // später auswählbar
+  class: "Krieger",
   level: 1,
   xp: 0,
+  xpMax: 100,
   gold: 50,
   inventory: []
 };
 
 // ================= KLASSEN-ITEMS =================
 const classItems = {
-  Krieger: [
-    "Schwert der Ehre",
-    "Axt des Zorns",
-    "Klinge des Titans",
-    "Stahlbrecher"
-  ],
-  Magier: [
-    "Stab der Weisheit",
-    "Flammenfokus",
-    "Kristallstab",
-    "Sternenrufer"
-  ],
-  Kundschafter: [
-    "Dolch der Schatten",
-    "Bogen des Windes",
-    "Nachtklinge",
-    "Jägersplitter"
-  ],
-  Nekromant: [
-    "Seelensichel",
-    "Stab der Verdammnis",
-    "Knochenzepter",
-    "Fluchbringer"
-  ]
+  Krieger: ["Schwert der Ehre","Axt des Zorns","Titanenklinge"],
+  Magier: ["Stab der Weisheit","Flammenfokus"],
+  Kundschafter: ["Dolch der Schatten","Bogen des Windes"],
+  Nekromant: ["Seelensichel","Fluchstab"]
 };
 
 // ================= QUALITÄTEN =================
@@ -152,40 +132,40 @@ function show(id) {
   document.getElementById(id).classList.add("active");
 }
 
-// ================= ITEM GENERATOR =================
+// ================= ITEM =================
 function generateItem() {
-  const possibleQualities = qualities.filter(q => player.level >= q.min);
-  const quality = possibleQualities[Math.floor(Math.random() * possibleQualities.length)];
-
+  const possible = qualities.filter(q => player.level >= q.min);
+  const quality = possible[Math.floor(Math.random() * possible.length)];
   const names = classItems[player.class];
-  const name = names[Math.floor(Math.random() * names.length)];
-
   return {
-    name: name,
+    name: names[Math.floor(Math.random() * names.length)],
     quality: quality.name,
-    level: player.level,
-    classReq: player.class
+    level: player.level
   };
 }
 
 // ================= QUEST =================
 function finishQuest() {
-  const xpGain = 20;
-  const goldGain = 15;
+  const xpGain = 40;
+  const goldGain = 20;
 
   player.xp += xpGain;
   player.gold += goldGain;
 
-  if (player.xp >= 100) {
+  let leveledUp = false;
+  if (player.xp >= player.xpMax) {
     player.level++;
-    player.xp = 0;
+    player.xp -= player.xpMax;
+    leveledUp = true;
   }
 
   const item = generateItem();
   player.inventory.push(item);
 
   document.getElementById("questResult").innerHTML =
-    `+${xpGain} XP<br>+${goldGain} Gold<br>Item erhalten: <b>${item.name}</b>`;
+    `+${xpGain} XP<br>+${goldGain} Gold<br>
+     Item: <b>${item.name}</b><br>
+     ${leveledUp ? "<b>LEVEL UP!</b>" : ""}`;
 
   updateUI();
 }
@@ -194,7 +174,7 @@ function finishQuest() {
 function updateUI() {
   document.getElementById("klasse").innerText = player.class;
   document.getElementById("level").innerText = player.level;
-  document.getElementById("xp").innerText = player.xp;
+  document.getElementById("xp").innerText = `${player.xp} / ${player.xpMax}`;
   document.getElementById("gold").innerText = player.gold;
 
   const inv = document.getElementById("inventoryBox");
@@ -203,22 +183,14 @@ function updateUI() {
   if (player.inventory.length === 0) {
     inv.innerText = "Inventar leer";
   } else {
-    player.inventory.forEach((item, index) => {
+    player.inventory.forEach(item => {
       const div = document.createElement("div");
       div.className = "item";
-      div.innerHTML = `
-        <b>${item.name}</b><br>
-        Qualität: ${item.quality}<br>
-        Level: ${item.level}
-      `;
-
-      div.onclick = (e) => {
+      div.innerHTML = `<b>${item.name}</b><br>${item.quality}`;
+      div.onclick = e => {
         e.stopPropagation();
-        alert(
-          `${item.name}\n\nQualität: ${item.quality}\nItem-Level: ${item.level}\nKlasse: ${item.classReq}`
-        );
+        alert(`${item.name}\nQualität: ${item.quality}`);
       };
-
       inv.appendChild(div);
     });
   }
