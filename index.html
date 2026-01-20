@@ -3,22 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 14.4</title>
-
+<title>Comic Kingdom – Version 16.0</title>
 <style>
-body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:90px}
-nav{position:fixed;top:0;left:0;right:0;background:#fff;padding:10px;display:flex;gap:5px;z-index:100}
-nav button{flex:1;padding:10px;font-size:13px}
-.section{display:none;padding:15px}
-.section.active{display:block}
-.box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
-.item{border:1px solid #ccc;padding:10px;margin:5px 0;cursor:pointer}
-.skill{border:1px solid #ccc;padding:10px;margin:5px 0;position:relative}
-.skill button{position:absolute;right:10px;top:10px}
-.skill.locked{opacity:0.5}
-.skill button:disabled{opacity:0.4}
-.empty{color:#888;font-style:italic}
-.equipSlot{border:1px dashed #aaa;padding:10px;margin:5px 0}
+  body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:90px}
+  nav{position:fixed;top:0;left:0;right:0;background:#fff;padding:10px;display:flex;gap:5px;z-index:100}
+  nav button{flex:1;padding:10px;font-size:13px}
+  .section{display:none;padding:15px}
+  .section.active{display:block}
+  .box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
+  .item{border:1px solid #ccc;padding:10px;margin:5px 0;cursor:pointer}
+  .empty{color:#888;font-style:italic}
+  .skill{border:1px solid #ccc;padding:10px;margin:5px 0;position:relative}
+  .skill button{position:absolute;right:10px;top:10px}
+  .skill.locked{opacity:0.5}
+  .skill button:disabled{opacity:0.4}
+  .equipSlot{border:1px dashed #999;padding:10px;margin:5px 0;}
+  .equipSlot b{display:block;}
+  .tooltip{
+    position:relative;
+    display:inline-block;
+    border-bottom:1px dotted #000;
+  }
+  .tooltip .tiptext{
+    visibility:hidden;
+    width:220px;
+    background:#333;
+    color:#fff;
+    text-align:left;
+    border-radius:6px;
+    padding:8px;
+    position:absolute;
+    z-index:10;
+    bottom:125%;
+    left:50%;
+    transform:translateX(-50%);
+    opacity:0;
+    transition:opacity 0.3s;
+    font-size:12px;
+  }
+  .tooltip:hover .tiptext{
+    visibility:visible;
+    opacity:1;
+  }
 </style>
 </head>
 
@@ -48,8 +74,12 @@ nav button{flex:1;padding:10px;font-size:13px}
   <button onclick="show('skills')">Skills</button>
   <button onclick="show('quests')">Quest</button>
   <button onclick="show('inventar')">Inventar</button>
+  <button onclick="show('stadt')">Stadt</button>
+  <button onclick="show('farm')">Farm</button>
+  <button onclick="logout()">Logout</button>
 </nav>
 
+<!-- STATUS -->
 <div id="status" class="section">
   <div class="box">
     <h2>Status</h2>
@@ -61,49 +91,76 @@ nav button{flex:1;padding:10px;font-size:13px}
     <p>🍫 Schokolade: <b id="uiChocolate"></b></p>
     <p>Angriff: <b id="uiAtk"></b></p>
     <p>Verteidigung: <b id="uiDef"></b></p>
+    <p>HP-Regeneration: <b id="uiRegen"></b>/5 Minuten</p>
+  </div>
+
+  <div class="box">
+    <h3>Ausrüstung</h3>
+    <div id="equipSlots"></div>
   </div>
 </div>
 
+<!-- SKILLS -->
 <div id="skills" class="section">
   <div class="box">
     <h2>🌳 Skillbäume</h2>
+    <p>Skillpunkte: <b id="uiSkillPoints"></b></p>
     <div id="skillBox"></div>
   </div>
 </div>
 
+<!-- QUESTS -->
 <div id="quests" class="section">
   <div class="box">
+    <h2>Quests</h2>
+    <div id="questList"></div>
+    <button onclick="acceptQuest()">Quest annehmen</button>
     <button onclick="finishQuest()">Quest abschließen</button>
     <p id="questLog"></p>
   </div>
 </div>
 
+<!-- INVENTAR -->
 <div id="inventar" class="section">
   <div class="box">
     <h2>Inventar</h2>
+    <button onclick="sortInventory()">Sortieren (Qualität)</button>
     <div id="inventoryBox"></div>
-    <h3>Ausrüstung</h3>
-    <div class="equipSlot">
-      <b>Waffe:</b> <span id="equipWeapon">Keine</span><br>
-      <button onclick="unequip('weapon')">Entrüsten</button>
-    </div>
-    <div class="equipSlot">
-      <b>Rüstung:</b> <span id="equipArmor">Keine</span><br>
-      <button onclick="unequip('armor')">Entrüsten</button>
-    </div>
+  </div>
+</div>
+
+<!-- STADT -->
+<div id="stadt" class="section">
+  <div class="box">
+    <h2>Stadt</h2>
+    <button onclick="openBuilding('taverne')">🏰 Taverne</button>
+    <button onclick="openBuilding('schmiede')">🛠️ Schmiede</button>
+    <button onclick="openBuilding('arena')">⚔️ Arena</button>
+    <button onclick="openBuilding('shop')">🛒 Markt</button>
+    <button onclick="openBuilding('alchemist')">🧪 Alchemist</button>
+  </div>
+  <div id="buildingBox"></div>
+</div>
+
+<!-- FARM -->
+<div id="farm" class="section">
+  <div class="box">
+    <h2>🌾 Farm</h2>
+    <p>Holz: <b id="uiWood"></b> | Stein: <b id="uiStone"></b> | Nahrung: <b id="uiFood"></b></p>
+    <button onclick="collectResources()">Ressourcen sammeln</button>
+    <button onclick="buildFarm()">Farm bauen (10 Holz + 10 Stein)</button>
+    <button onclick="upgradeFarm()">Farm upgraden (20 Holz + 20 Stein)</button>
+    <p id="farmLog"></p>
+    <p>Farmstatus: <b id="uiFarmStatus"></b></p>
   </div>
 </div>
 
 <script>
 /* ================= SAVE ================= */
 const SAVE_VERSION = 1;
-
 function loadAll(){
-  try{
-    return JSON.parse(localStorage.getItem("ck_chars")) || [];
-  }catch{
-    return [];
-  }
+  try { return JSON.parse(localStorage.getItem("ck_chars")) || []; }
+  catch { return []; }
 }
 function saveAll(chars){
   localStorage.setItem("ck_chars", JSON.stringify(chars));
@@ -113,6 +170,8 @@ function saveAll(chars){
 let chars = loadAll();
 let player = null;
 let activeId = null;
+let autosaveInterval = null;
+let regenInterval = null;
 
 /* ================= SKILLDATA ================= */
 const skillData={
@@ -127,16 +186,100 @@ const skillData={
   Magie:[
     {id:"fokus",name:"Fokus",max:3,desc:"+5% XP",req:null},
     {id:"arkane",name:"Arkane Macht",max:5,desc:"+3 Angriff",req:{fokus:2}}
+  ],
+  Farm:[
+    {id:"bauer",name:"Bauernweisheit",max:5,desc:"+10% Ressourcen",req:null},
+    {id:"agrar",name:"Agrar-Meister",max:3,desc:"+20% Ressourcen",req:{bauer:3}}
+  ],
+  Schmiede:[
+    {id:"schmied",name:"Schmiedekunst",max:5,desc:"+10% Itemqualität",req:null},
+    {id:"meisterschmied",name:"Meisterschmied",max:3,desc:"+20% Itemqualität",req:{schmied:3}}
   ]
 };
 const allSkills = Object.values(skillData).flat();
 
-/* ================= ITEMDATA ================= */
-const items = [
-  {id:"sword_1",name:"Eisenschwert",type:"weapon",atk:3,def:0,price:30},
-  {id:"armor_1",name:"Lederrüstung",type:"armor",atk:0,def:3,price:30},
-  {id:"choco",name:"Schokolade",type:"consumable",atk:0,def:0,price:10}
+/* ================= QUESTS ================= */
+const questPool = [
+  {id:"q1",name:"Ratten im Keller",lvl:1,xp:40,gold:20,lootChance:0.4,desc:"Besiege die Ratten und finde Loot."},
+  {id:"q2",name:"Verlorene Münzen",lvl:2,xp:60,gold:35,lootChance:0.5,desc:"Finde verlorene Münzen in der Stadt."},
+  {id:"q3",name:"Banditenlager",lvl:3,xp:90,gold:50,lootChance:0.6,desc:"Kämpfe gegen Banditen und lootet wertvolle Items."}
 ];
+let activeQuest = null;
+
+/* ================= ITEM SYSTEM ================= */
+const slots = ["Waffe","Helm","Rüstung","Ring"];
+const qualities = [
+  {n:"Gewöhnlich",atk:1,def:1,w:50},
+  {n:"Ungewöhnlich",atk:2,def:2,w:25},
+  {n:"Selten",atk:3,def:3,w:15},
+  {n:"Episch",atk:5,def:5,w:7},
+  {n:"Legendär",atk:8,def:8,w:3}
+];
+
+const itemPools = {
+  Waffe:["Schwert","Axt","Stab","Dolch","Seelensichel"],
+  Helm:["Helm","Kapuzenhelm","Knochenkrone"],
+  Rüstung:["Plattenrüstung","Magierrobe","Lederrüstung"],
+  Ring:["Ring der Kraft","Ring der Abwehr"]
+};
+
+function weightedQuality(){
+  const pool=[];
+  qualities.forEach(q=>{
+    for(let i=0;i<q.w;i++) pool.push(q);
+  });
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function generateItem(){
+  const q=weightedQuality();
+  const slot=slots[Math.floor(Math.random()*slots.length)];
+  const names=itemPools[slot];
+  return {
+    id: Date.now().toString() + Math.random(),
+    name: names[Math.floor(Math.random()*names.length)],
+    quality: q.n,
+    atk: q.atk,
+    def: q.def,
+    slot,
+    levelReq: Math.max(1, Math.floor(Math.random()*player.level) + 1)
+  };
+}
+
+/* ================= STATS ================= */
+function calcStats(){
+  let atk = 5 + player.level;
+  let def = 5 + player.level;
+
+  atk += player.skills.kraft * 2;
+  atk += player.skills.arkane * 3;
+  def += player.skills.zaehigkeit * 2;
+
+  atk *= 1 + player.skills.waffen * 0.1;
+  def *= 1 + player.skills.eisenhaut * 0.1;
+
+  // add equip bonuses
+  for(const s of slots){
+    const it = player.equip[s];
+    if(it){
+      atk += it.atk;
+      def += it.def;
+    }
+  }
+
+  // Farm/Schmiede Skills
+  const regenBonus = Math.floor(player.skills.bauer * 0.1 + player.skills.agrar * 0.2);
+  const xpBonus = player.skills.fokus * 0.05;
+  const lootBonus = player.skills.schmied * 0.05 + player.skills.meisterschmied * 0.1;
+
+  return {
+    atk: Math.floor(atk),
+    def: Math.floor(def),
+    regenBonus,
+    xpBonus,
+    lootBonus
+  };
+}
 
 /* ================= NAV ================= */
 function show(id){
@@ -148,12 +291,10 @@ function show(id){
 function renderCharList(){
   const list = document.getElementById("charList");
   list.innerHTML = "";
-
   if(chars.length===0){
     list.innerHTML = "<p class='empty'>Keine Charaktere vorhanden.</p>";
     return;
   }
-
   chars.forEach(c=>{
     const d = document.createElement("div");
     d.className = "item";
@@ -190,7 +331,14 @@ function createCharacter(){
     skillPoints: 0,
     skills: {},
     inventory: [],
-    equip: {weapon:null, armor:null}
+    equip: {Waffe:null,Helm:null,Rüstung:null,Ring:null},
+    wood: 0,
+    stone: 0,
+    food: 0,
+    farmBuilt: false,
+    farmLevel: 0,
+    farmTimer: 0,
+    lastSave: Date.now()
   };
 
   allSkills.forEach(s=> newChar.skills[s.id]=0);
@@ -210,32 +358,106 @@ function deleteChar(id){
 function selectChar(id){
   player = JSON.parse(JSON.stringify(chars.find(c=>c.id===id)));
   activeId = id;
-
   document.getElementById("gameNav").style.display = "flex";
-  document.getElementById("charSelect").style.display = "none";
-
+  show("status");
   updateUI();
+  startAutoSave();
+  startRegen();
+  renderQuestList();
 }
 
-/* ================= SAVE PLAYER ================= */
-function save(){
-  if(!player || !activeId) return;
-  const idx = chars.findIndex(c=>c.id===activeId);
-  if(idx === -1) return;
-
-  chars[idx] = JSON.parse(JSON.stringify(player));
-  saveAll(chars);
+function logout(){
+  stopAutoSave();
+  stopRegen();
+  player = null;
+  activeId = null;
+  document.getElementById("gameNav").style.display = "none";
+  show("charSelect");
 }
 
-/* ================= QUEST ================= */
+/* ================= AUTO SAVE ================= */
+function startAutoSave(){
+  if(autosaveInterval) clearInterval(autosaveInterval);
+  autosaveInterval = setInterval(()=>{
+    save();
+  }, 10000); // alle 10 Sekunden
+}
+function stopAutoSave(){
+  if(autosaveInterval) clearInterval(autosaveInterval);
+}
+
+/* ================= HP REGEN ================= */
+function startRegen(){
+  if(regenInterval) clearInterval(regenInterval);
+  regenInterval = setInterval(()=>{
+    if(!player) return;
+    const stats = calcStats();
+    const regen = 1 + stats.regenBonus; // 1 HP + Bonus
+    player.hp = Math.min(player.hpMax, player.hp + regen);
+    updateUI();
+  }, 300000); // alle 5 Minuten
+}
+function stopRegen(){
+  if(regenInterval) clearInterval(regenInterval);
+}
+
+/* ================= QUESTS ================= */
+function renderQuestList(){
+  const q = document.getElementById("questList");
+  q.innerHTML = "";
+  questPool.forEach(quest => {
+    q.innerHTML += `
+      <div class="item">
+        <b>${quest.name}</b> (Level ${quest.lvl})<br>
+        ${quest.desc}<br>
+        XP: ${quest.xp} | Gold: ${quest.gold}<br>
+        <button onclick="setActiveQuest('${quest.id}')">Annehmen</button>
+      </div>
+    `;
+  });
+}
+
+function setActiveQuest(id){
+  activeQuest = questPool.find(q=>q.id===id);
+  document.getElementById("questLog").innerText = `Aktive Quest: ${activeQuest.name}`;
+}
+
+function acceptQuest(){
+  if(!activeQuest) {
+    alert("Wähle zuerst eine Quest aus.");
+    return;
+  }
+  document.getElementById("questLog").innerText = `Quest angenommen: ${activeQuest.name}`;
+}
+
 function finishQuest(){
-  const gainedChocolate = Math.random() < 0.1 ? 1 : 0;
+  if(!activeQuest){
+    alert("Keine Quest aktiv.");
+    return;
+  }
 
-  let xpGain = 40 * (1 + player.skills.fokus * 0.05);
-  player.xp += Math.floor(xpGain);
-  player.gold += 20;
-  player.chocolate += gainedChocolate;
+  if(player.level < activeQuest.lvl){
+    alert("Du bist zu niedrig level für diese Quest.");
+    return;
+  }
 
+  // XP + Gold + Loot
+  const stats = calcStats();
+  let xpGain = Math.floor(activeQuest.xp * (1 + stats.xpBonus));
+  player.xp += xpGain;
+  player.gold += activeQuest.gold;
+
+  let choc = Math.random() < 0.1 ? 1 : 0;
+  player.chocolate += choc;
+
+  let loot = "Kein Loot.";
+  if(Math.random() < activeQuest.lootChance + stats.lootBonus){
+    const it = generateItem();
+    player.inventory.push(it);
+    loot = `Loot: ${it.name} (${it.quality})`;
+  }
+
+  // Level up
   while(player.xp >= player.xpMax){
     player.xp -= player.xpMax;
     player.level++;
@@ -246,35 +468,251 @@ function finishQuest(){
   }
 
   document.getElementById("questLog").innerHTML =
-    `+${Math.floor(xpGain)} XP<br>+20 Gold<br>+${gainedChocolate} Schokolade`;
+    `Quest abgeschlossen!<br>+${xpGain} XP<br>+${activeQuest.gold} Gold<br>+${choc} Schokolade<br>${loot}`;
 
   save();
   updateUI();
 }
 
-/* ================= STATS ================= */
-function calcStats(){
-  let atk = 5 + player.level;
-  let def = 5 + player.level;
-
-  atk += player.skills.kraft * 2;
-  atk += player.skills.arkane * 3;
-  def += player.skills.zaehigkeit * 2;
-
-  atk *= 1 + player.skills.waffen * 0.1;
-  def *= 1 + player.skills.eisenhaut * 0.1;
-
-  // Ausrüstung anwenden
-  if(player.equip.weapon){
-    atk += player.equip.weapon.atk;
-    def += player.equip.weapon.def;
+/* ================= INVENTAR UI ================= */
+function updateInventory(){
+  const inv = document.getElementById("inventoryBox");
+  inv.innerHTML="";
+  if(player.inventory.length===0){
+    inv.innerHTML="<p class='empty'>Inventar leer</p>";
+    return;
   }
-  if(player.equip.armor){
-    atk += player.equip.armor.atk;
-    def += player.equip.armor.def;
+  player.inventory.forEach(it=>{
+    const d=document.createElement("div");
+    d.className="item";
+    d.innerHTML = `
+      <b>${it.name}</b> (${it.quality})<br>
+      ${it.slot} | Level ${it.levelReq}<br>
+      <button onclick="showItem('${it.id}')">Details</button>
+      <button onclick="sellItem('${it.id}')">Verkaufen</button>
+    `;
+    inv.appendChild(d);
+  });
+}
+
+function showItem(id){
+  const it = player.inventory.find(x=>x.id===id);
+  if(!it) return;
+
+  let canEquip = player.level >= it.levelReq;
+  let action = canEquip ? "Ausrüsten" : "Nicht levelbar";
+
+  let current = player.equip[it.slot];
+  let compare = current ? `Aktuell: ${current.name} (+${current.atk}/${current.def})` : "Aktuell: leer";
+
+  if(confirm(
+    `Item: ${it.name}\nQualität: ${it.quality}\nSlot: ${it.slot}\nAngriff: ${it.atk}\nVerteidigung: ${it.def}\nLevelanforderung: ${it.levelReq}\n\n${compare}\n\n${canEquip ? "Willst du es ausrüsten?" : "Du bist zu niedrig level."}`
+  )){
+    if(canEquip){
+      equipItem(it.id);
+    }
+  }
+}
+
+function sellItem(id){
+  const it = player.inventory.find(x=>x.id===id);
+  if(!it) return;
+
+  const sellPrice = Math.floor((it.atk + it.def) * 5);
+  if(confirm(`Item verkaufen für ${sellPrice} Gold?`)){
+    player.gold += sellPrice;
+    player.inventory = player.inventory.filter(x=>x.id!==id);
+    updateUI();
+    save();
+  }
+}
+
+function sortInventory(){
+  player.inventory.sort((a,b)=>{
+    const qa = qualities.findIndex(q=>q.n===a.quality);
+    const qb = qualities.findIndex(q=>q.n===b.quality);
+    return qb - qa;
+  });
+  updateInventory();
+}
+
+/* ================= EQUIP ================= */
+function equipItem(id){
+  const it = player.inventory.find(x=>x.id===id);
+  if(!it) return;
+
+  if(player.level < it.levelReq){
+    alert("Level zu niedrig.");
+    return;
   }
 
-  return {atk: Math.floor(atk), def: Math.floor(def)};
+  const slot = it.slot;
+  const old = player.equip[slot];
+  player.equip[slot] = it;
+
+  player.inventory = player.inventory.filter(x=>x.id!==id);
+
+  if(old) player.inventory.push(old);
+
+  save();
+  updateUI();
+}
+
+/* ================= EQUIP UI ================= */
+function renderEquip(){
+  const box = document.getElementById("equipSlots");
+  box.innerHTML = "";
+  for(const s of slots){
+    const it = player.equip[s];
+    box.innerHTML += `
+      <div class="equipSlot">
+        <b>${s}</b>
+        ${it ? `${it.name} (${it.quality}) +${it.atk}ATK / +${it.def}DEF` : "<span class='empty'>Leer</span>"}
+      </div>`;
+  }
+}
+
+/* ================= BUILDINGS ================= */
+function openBuilding(id){
+  const box = document.getElementById("buildingBox");
+  box.innerHTML="";
+  if(id==="taverne"){
+    box.innerHTML = `
+      <p>🛡️ Taverne: Quests & Geschichten</p>
+      <p class="empty">(Jetzt mit echten Quests & Loot)</p>
+    `;
+  }
+  if(id==="schmiede"){
+    box.innerHTML = `
+      <p>🛠️ Schmiede: Item Crafting & Upgrade</p>
+      <button onclick="craftItem()">Item craften (10 Gold)</button>
+    `;
+  }
+  if(id==="arena"){
+    box.innerHTML = `
+      <p>⚔️ Arena: PvP (Einfacher Kampf gegen Gegner)</p>
+      <button onclick="arenaFight()">Kampf starten</button>
+    `;
+  }
+  if(id==="shop"){
+    box.innerHTML = `
+      <p>🛒 Markt: Kaufen & Verkaufen</p>
+      <button onclick="buyPotion()">Trank kaufen (5 Gold)</button>
+    `;
+  }
+  if(id==="alchemist"){
+    box.innerHTML = `
+      <p>🧪 Alchemist: Tränke</p>
+      <button onclick="usePotion()">Trank benutzen (stellt HP wieder her)</button>
+    `;
+  }
+}
+
+/* ================= FARM ================= */
+function collectResources(){
+  const bonus = 1 + player.skills.bauer * 0.1 + player.skills.agrar * 0.2;
+  const gain = Math.floor(5 * bonus);
+  player.wood += gain;
+  player.stone += gain;
+  player.food += gain;
+  document.getElementById("farmLog").innerText = `+${gain} Holz, +${gain} Stein, +${gain} Nahrung`;
+  save();
+  updateUI();
+}
+
+function buildFarm(){
+  if(player.farmBuilt){
+    alert("Farm ist bereits gebaut.");
+    return;
+  }
+  if(player.wood < 10 || player.stone < 10){
+    alert("Nicht genug Ressourcen.");
+    return;
+  }
+  player.wood -= 10;
+  player.stone -= 10;
+  player.farmBuilt = true;
+  player.farmLevel = 1;
+  player.farmTimer = Date.now();
+  document.getElementById("farmLog").innerText = "Farm gebaut! Produktion startet.";
+  save();
+  updateUI();
+}
+
+function upgradeFarm(){
+  if(!player.farmBuilt){
+    alert("Du musst zuerst eine Farm bauen.");
+    return;
+  }
+  if(player.wood < 20 || player.stone < 20){
+    alert("Nicht genug Ressourcen.");
+    return;
+  }
+  player.wood -= 20;
+  player.stone -= 20;
+  player.farmLevel++;
+  document.getElementById("farmLog").innerText = "Farm upgraded! Produktion steigt.";
+  save();
+  updateUI();
+}
+
+/* ================= SHOP ================= */
+function buyPotion(){
+  if(player.gold < 5){
+    alert("Nicht genug Gold.");
+    return;
+  }
+  player.gold -= 5;
+  player.inventory.push({id: Date.now().toString()+Math.random(), name:"Heiltrank", quality:"Gewöhnlich", atk:0, def:0, slot:"Potion", levelReq:1});
+  updateUI();
+  save();
+}
+
+/* ================= POTION ================= */
+function usePotion(){
+  const pot = player.inventory.find(x=>x.slot==="Potion");
+  if(!pot){
+    alert("Kein Trank im Inventar.");
+    return;
+  }
+  player.hp = Math.min(player.hpMax, player.hp + 50);
+  player.inventory = player.inventory.filter(x=>x.id!==pot.id);
+  updateUI();
+  save();
+}
+
+/* ================= ARENA ================= */
+function arenaFight(){
+  const stats = calcStats();
+  const enemy = {
+    lvl: player.level,
+    atk: Math.floor(5 + player.level * 1.2),
+    def: Math.floor(5 + player.level * 1.1),
+    hp: 80 + player.level * 10
+  };
+
+  let playerHp = player.hp;
+  let enemyHp = enemy.hp;
+
+  while(playerHp > 0 && enemyHp > 0){
+    const playerDmg = Math.max(1, stats.atk - enemy.def + Math.floor(Math.random()*5));
+    enemyHp -= playerDmg;
+    if(enemyHp <= 0) break;
+
+    const enemyDmg = Math.max(1, enemy.atk - stats.def + Math.floor(Math.random()*5));
+    playerHp -= enemyDmg;
+  }
+
+  if(playerHp > 0){
+    player.hp = playerHp;
+    player.gold += 10;
+    document.getElementById("questLog").innerHTML = "Arena gewonnen! +10 Gold";
+  } else {
+    player.hp = 1;
+    document.getElementById("questLog").innerHTML = "Arena verloren... Du überlebst mit 1 HP";
+  }
+  save();
+  updateUI();
 }
 
 /* ================= SKILLS ================= */
@@ -302,83 +740,16 @@ function renderSkills(){
     skillBox.innerHTML += `<h3>${tree}</h3>`;
     skillData[tree].forEach(s=>{
       const lvl = player.skills[s.id];
-      const locked = !canLearn(s) && lvl < s.max;
-      const maxed = lvl >= s.max;
-
+      const locked = !canLearn(s);
       skillBox.innerHTML += `
-        <div class="skill ${locked ? "locked":""}">
+        <div class="skill ${locked && lvl<s.max ? "locked":""}">
           <b>${s.name}</b> (${lvl}/${s.max})<br>
           ${s.desc}<br>
           ${s.req ? `<small>Voraussetzung: ${Object.keys(s.req)[0]} ${Object.values(s.req)[0]}</small>` : ""}
-          <button ${!canLearn(s) ? "disabled":""} onclick="learnSkill('${s.id}')">${maxed ? "Max" : "+"}</button>
+          <button ${!canLearn(s) ? "disabled":""} onclick="learnSkill('${s.id}')">+</button>
         </div>`;
     });
   }
-}
-
-/* ================= INVENTAR ================= */
-function addItem(itemId){
-  const item = items.find(i=>i.id===itemId);
-  if(!item) return;
-
-  const invItem = player.inventory.find(i=>i.id===itemId);
-  if(invItem){
-    invItem.amount++;
-  } else {
-    player.inventory.push({id:itemId, amount:1});
-  }
-  save();
-  updateUI();
-}
-
-function removeItem(itemId){
-  const idx = player.inventory.findIndex(i=>i.id===itemId);
-  if(idx===-1) return;
-  if(player.inventory[idx].amount > 1) player.inventory[idx].amount--;
-  else player.inventory.splice(idx,1);
-  save();
-  updateUI();
-}
-
-function equip(itemId){
-  const item = items.find(i=>i.id===itemId);
-  if(!item) return;
-
-  if(item.type==="weapon"){
-    player.equip.weapon = item;
-  } else if(item.type==="armor"){
-    player.equip.armor = item;
-  }
-  save();
-  updateUI();
-}
-
-function unequip(slot){
-  if(slot==="weapon") player.equip.weapon = null;
-  if(slot==="armor") player.equip.armor = null;
-  save();
-  updateUI();
-}
-
-function renderInventory(){
-  inventoryBox.innerHTML = "";
-
-  if(player.inventory.length === 0){
-    inventoryBox.innerHTML = "<p class='empty'>Inventar ist leer.</p>";
-    return;
-  }
-
-  player.inventory.forEach(i=>{
-    const item = items.find(x=>x.id===i.id);
-    inventoryBox.innerHTML += `
-      <div class="item">
-        <b>${item.name}</b> x${i.amount}
-        <br>
-        <button onclick="equip('${item.id}')">Ausrüsten</button>
-        <button onclick="removeItem('${item.id}')">Entfernen</button>
-      </div>
-    `;
-  });
 }
 
 /* ================= UI ================= */
@@ -394,14 +765,30 @@ function updateUI(){
   uiChocolate.textContent = player.chocolate;
   uiAtk.textContent = s.atk;
   uiDef.textContent = s.def;
+  uiRegen.textContent = 1 + s.regenBonus;
 
-  equipWeapon.textContent = player.equip.weapon ? player.equip.weapon.name : "Keine";
-  equipArmor.textContent = player.equip.armor ? player.equip.armor.name : "Keine";
+  uiWood.textContent = player.wood;
+  uiStone.textContent = player.stone;
+  uiFood.textContent = player.food;
+
+  uiSkillPoints.textContent = player.skillPoints;
+
+  uiFarmStatus.textContent = player.farmBuilt ? `Level ${player.farmLevel}` : "Nicht gebaut";
 
   renderSkills();
-  renderInventory();
-
+  updateInventory();
+  renderEquip();
   save();
+}
+
+/* ================= SAVE PLAYER BACK ================= */
+function save(){
+  if(!player || !activeId) return;
+  const idx = chars.findIndex(c=>c.id===activeId);
+  if(idx === -1) return;
+  player.lastSave = Date.now();
+  chars[idx] = JSON.parse(JSON.stringify(player));
+  saveAll(chars);
 }
 
 /* ================= INIT ================= */
