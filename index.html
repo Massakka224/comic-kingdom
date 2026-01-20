@@ -38,15 +38,11 @@ nav {
   margin-bottom: 15px;
 }
 .item {
-  border: 1px solid #ccc;
+  border: 1px solid #888;
   padding: 8px;
   margin: 5px 0;
   cursor: pointer;
-}
-.skill {
-  border: 1px solid #aaa;
-  padding: 8px;
-  margin: 6px 0;
+  background: #fafafa;
 }
 </style>
 </head>
@@ -55,7 +51,6 @@ nav {
 
 <h1>Comic Kingdom</h1>
 
-<!-- NAV -->
 <nav id="gameNav">
   <button onclick="show('status')">Status</button>
   <button onclick="show('quests')">Quests</button>
@@ -65,7 +60,7 @@ nav {
   <button onclick="show('skills')">Skills</button>
 </nav>
 
-<!-- CHARAKTERAUSWAHL -->
+<!-- CHARAKTER -->
 <div id="characterScreen" class="section active">
   <div class="box">
     <h2>Charakter erstellen</h2>
@@ -82,6 +77,7 @@ nav {
     <p>Name: <b id="pName"></b></p>
     <p>Klasse: <b id="pClass"></b></p>
     <p>Level: <b id="level"></b></p>
+    <p>XP: <b id="xp"></b> / <b id="xpNext"></b></p>
     <p>Gold: <b id="gold"></b></p>
     <p>Skillpunkte: <b id="skillPoints"></b></p>
   </div>
@@ -91,7 +87,7 @@ nav {
 <div id="quests" class="section">
   <div class="box">
     <button onclick="finishQuest()">Quest abschließen</button>
-    <p>Belohnung: XP & Gold</p>
+    <p id="questResult"></p>
   </div>
 </div>
 
@@ -122,55 +118,35 @@ nav {
 <!-- SKILLS -->
 <div id="skills" class="section">
   <div class="box">
-    <h2>Skillbaum</h2>
-    <p>Verfügbare Punkte: <b id="skillPoints2"></b></p>
-
-    <div class="skill">
-      Stärke (+2 Schaden)
-      <button onclick="upgradeSkill('strength')">+</button>
-      Level: <span id="strength">0</span>
-    </div>
-
-    <div class="skill">
-      Verteidigung (+2 Rüstung)
-      <button onclick="upgradeSkill('defense')">+</button>
-      Level: <span id="defense">0</span>
-    </div>
-
-    <div class="skill">
-      Leben (+10 HP)
-      <button onclick="upgradeSkill('health')">+</button>
-      Level: <span id="health">0</span>
-    </div>
+    <p>Skillpunkte: <b id="skillPoints2"></b></p>
+    <button onclick="upgradeSkill('strength')">Stärke</button>
+    <button onclick="upgradeSkill('defense')">Verteidigung</button>
+    <button onclick="upgradeSkill('health')">Leben</button>
   </div>
 </div>
 
 <script>
-let player = JSON.parse(localStorage.getItem("player")) || null;
+let player = JSON.parse(localStorage.getItem("player"));
 
 function selectClass(cls) {
   const name = document.getElementById("charName").value;
-  if (!name) return alert("Name eingeben!");
+  if (!name) return alert("Name fehlt");
 
   player = {
-    name,
-    class: cls,
-    level: 1,
+    name, class: cls,
+    level: 1, xp: 0,
     gold: 50,
     skillPoints: 0,
     skills: { strength: 0, defense: 0, health: 0 },
     inventory: []
   };
-
-  save();
-  startGame();
+  save(); startGame();
 }
 
 function startGame() {
   document.getElementById("characterScreen").classList.remove("active");
   document.getElementById("gameNav").style.display = "block";
-  updateUI();
-  show("status");
+  updateUI(); show("status");
 }
 
 function show(id) {
@@ -179,42 +155,78 @@ function show(id) {
 }
 
 function finishQuest() {
-  player.level++;
-  player.gold += 20;
-  player.skillPoints++;
-  save();
-  updateUI();
+  const xpGain = 20 + player.level * 5;
+  const goldGain = 15 + player.level * 3;
+  const item = generateItem();
+
+  player.xp += xpGain;
+  player.gold += goldGain;
+  player.inventory.push(item);
+
+  levelUpCheck();
+
+  document.getElementById("questResult").innerHTML =
+    `Belohnung:<br>+${xpGain} XP<br>+${goldGain} Gold<br>Item: <b>${item}</b>`;
+
+  save(); updateUI();
 }
 
 function runDungeon() {
-  player.gold += 30;
-  document.getElementById("dungeonText").innerText = "Dungeon geschafft!";
-  save();
-  updateUI();
+  const gold = 30;
+  player.gold += gold;
+  document.getElementById("dungeonText").innerText = `Dungeon geschafft! +${gold} Gold`;
+  save(); updateUI();
 }
 
-function upgradeSkill(skill) {
+function levelUpCheck() {
+  const needed = player.level * 100;
+  if (player.xp >= needed) {
+    player.xp -= needed;
+    player.level++;
+    player.skillPoints++;
+    alert("Level Up!");
+  }
+}
+
+function generateItem() {
+  const qualities = [
+    {name:"Normal", min:1},
+    {name:"Selten", min:5},
+    {name:"Episch", min:10}
+  ];
+  const possible = qualities.filter(q => player.level >= q.min);
+  const q = possible[Math.floor(Math.random()*possible.length)];
+  return `${q.name}es Schwert (Lvl ${player.level})`;
+}
+
+function upgradeSkill(s) {
   if (player.skillPoints <= 0) return;
-  player.skills[skill]++;
-  player.skillPoints--;
-  save();
-  updateUI();
+  player.skills[s]++; player.skillPoints--;
+  save(); updateUI();
 }
 
 function updateUI() {
   document.getElementById("pName").innerText = player.name;
   document.getElementById("pClass").innerText = player.class;
   document.getElementById("level").innerText = player.level;
+  document.getElementById("xp").innerText = player.xp;
+  document.getElementById("xpNext").innerText = player.level * 100;
   document.getElementById("gold").innerText = player.gold;
   document.getElementById("skillPoints").innerText = player.skillPoints;
   document.getElementById("skillPoints2").innerText = player.skillPoints;
 
-  document.getElementById("strength").innerText = player.skills.strength;
-  document.getElementById("defense").innerText = player.skills.defense;
-  document.getElementById("health").innerText = player.skills.health;
-
-  document.getElementById("inventoryBox").innerText =
-    player.inventory.length ? player.inventory.join(", ") : "Inventar leer";
+  const inv = document.getElementById("inventoryBox");
+  inv.innerHTML = "";
+  if (player.inventory.length === 0) {
+    inv.innerText = "Inventar leer";
+  } else {
+    player.inventory.forEach(i => {
+      const div = document.createElement("div");
+      div.className = "item";
+      div.innerText = i;
+      inv.appendChild(div);
+    });
+  }
 }
 
 function save() {
