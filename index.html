@@ -3,237 +3,228 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom</title>
+<title>Comic Kingdom – Version 11</title>
 
 <style>
 body {
   font-family: Arial, sans-serif;
-  background: #f2f2f2;
-  margin: 0;
-  padding-top: 80px;
+  background:#f2f2f2;
+  margin:0;
+  padding-top:80px;
 }
-h1, h2 { text-align: center; }
-button {
-  width: 100%;
-  padding: 12px;
-  margin: 6px 0;
-  font-size: 16px;
-}
+
 nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background: white;
-  padding: 10px;
-  display: none;
-  z-index: 10;
+  position:fixed;
+  top:0; left:0; right:0;
+  background:#fff;
+  padding:10px;
+  display:flex;
+  gap:5px;
+  z-index:10;
 }
-.section { display: none; padding: 15px; }
-.section.active { display: block; }
+
+nav button {
+  flex:1;
+  padding:10px;
+  font-size:14px;
+}
+
+.section { display:none; padding:15px; }
+.section.active { display:block; }
+
 .box {
-  background: white;
-  padding: 15px;
-  border-radius: 10px;
-  margin-bottom: 15px;
+  background:#fff;
+  padding:15px;
+  border-radius:10px;
+  margin-bottom:15px;
 }
+
 .item {
-  border: 1px solid #888;
-  padding: 8px;
-  margin: 5px 0;
-  cursor: pointer;
-  background: #fafafa;
+  border:1px solid #ccc;
+  padding:10px;
+  margin:5px 0;
+  cursor:pointer;
 }
+.item:hover { background:#eee; }
 </style>
 </head>
 
 <body>
 
-<h1>Comic Kingdom</h1>
-
-<nav id="gameNav">
-  <button onclick="show('status')">Status</button>
-  <button onclick="show('quests')">Quests</button>
-  <button onclick="show('dungeon')">Dungeon</button>
-  <button onclick="show('stadt')">Stadt</button>
-  <button onclick="show('inventar')">Inventar</button>
-  <button onclick="show('skills')">Skills</button>
+<nav>
+<button onclick="show('status')">Status</button>
+<button onclick="show('quests')">Quests</button>
+<button onclick="show('stadt')">Stadt</button>
+<button onclick="show('inventar')">Inventar</button>
 </nav>
 
-<!-- CHARAKTER -->
-<div id="characterScreen" class="section active">
-  <div class="box">
-    <h2>Charakter erstellen</h2>
-    <input id="charName" placeholder="Name" style="width:100%;padding:10px;"><br><br>
-    <button onclick="selectClass('Krieger')">Krieger</button>
-    <button onclick="selectClass('Magier')">Magier</button>
-    <button onclick="selectClass('Nekromant')">Nekromant</button>
-  </div>
-</div>
-
 <!-- STATUS -->
-<div id="status" class="section">
-  <div class="box">
-    <p>Name: <b id="pName"></b></p>
-    <p>Klasse: <b id="pClass"></b></p>
-    <p>Level: <b id="level"></b></p>
-    <p>XP: <b id="xp"></b> / <b id="xpNext"></b></p>
-    <p>Gold: <b id="gold"></b></p>
-    <p>Skillpunkte: <b id="skillPoints"></b></p>
-  </div>
+<div id="status" class="section active">
+<div class="box">
+<h2>Status</h2>
+<p>Klasse: <b id="klasse"></b></p>
+<p>Level: <span id="level"></span></p>
+<p>XP: <span id="xp"></span></p>
+<p>Gold: <span id="gold"></span></p>
+</div>
 </div>
 
 <!-- QUESTS -->
 <div id="quests" class="section">
-  <div class="box">
-    <button onclick="finishQuest()">Quest abschließen</button>
-    <p id="questResult"></p>
-  </div>
+<div class="box">
+<h2>Quest</h2>
+<button onclick="finishQuest()">Quest abschließen</button>
+<p id="questResult"></p>
 </div>
-
-<!-- DUNGEON -->
-<div id="dungeon" class="section">
-  <div class="box">
-    <button onclick="runDungeon()">Dungeon kämpfen</button>
-    <p id="dungeonText"></p>
-  </div>
 </div>
 
 <!-- STADT -->
 <div id="stadt" class="section">
-  <div class="box">
-    <h2>Stadt</h2>
-    <button>Schmiede</button>
-    <button>Taverne</button>
-    <button>Magierturm</button>
-    <button>Festung</button>
-  </div>
+<div class="box">
+<h2>Stadt</h2>
+<p>Gebäude (werden erweitert):</p>
+<ul>
+<li>Schmiede</li>
+<li>Taverne</li>
+<li>Magier</li>
+</ul>
+</div>
 </div>
 
 <!-- INVENTAR -->
 <div id="inventar" class="section">
-  <div class="box" id="inventoryBox"></div>
+<div class="box">
+<h2>Inventar</h2>
+<div id="inventoryBox">Inventar leer</div>
 </div>
-
-<!-- SKILLS -->
-<div id="skills" class="section">
-  <div class="box">
-    <p>Skillpunkte: <b id="skillPoints2"></b></p>
-    <button onclick="upgradeSkill('strength')">Stärke</button>
-    <button onclick="upgradeSkill('defense')">Verteidigung</button>
-    <button onclick="upgradeSkill('health')">Leben</button>
-  </div>
 </div>
 
 <script>
-let player = JSON.parse(localStorage.getItem("player"));
+// ================= SPIELER =================
+const player = {
+  class: "Krieger", // später auswählbar
+  level: 1,
+  xp: 0,
+  gold: 50,
+  inventory: []
+};
 
-function selectClass(cls) {
-  const name = document.getElementById("charName").value;
-  if (!name) return alert("Name fehlt");
+// ================= KLASSEN-ITEMS =================
+const classItems = {
+  Krieger: [
+    "Schwert der Ehre",
+    "Axt des Zorns",
+    "Klinge des Titans",
+    "Stahlbrecher"
+  ],
+  Magier: [
+    "Stab der Weisheit",
+    "Flammenfokus",
+    "Kristallstab",
+    "Sternenrufer"
+  ],
+  Kundschafter: [
+    "Dolch der Schatten",
+    "Bogen des Windes",
+    "Nachtklinge",
+    "Jägersplitter"
+  ],
+  Nekromant: [
+    "Seelensichel",
+    "Stab der Verdammnis",
+    "Knochenzepter",
+    "Fluchbringer"
+  ]
+};
 
-  player = {
-    name, class: cls,
-    level: 1, xp: 0,
-    gold: 50,
-    skillPoints: 0,
-    skills: { strength: 0, defense: 0, health: 0 },
-    inventory: []
-  };
-  save(); startGame();
-}
+// ================= QUALITÄTEN =================
+const qualities = [
+  { name:"Gewöhnlich", min:1 },
+  { name:"Ungewöhnlich", min:20 },
+  { name:"Selten", min:30 },
+  { name:"Episch", min:100 },
+  { name:"Legendär", min:150 }
+];
 
-function startGame() {
-  document.getElementById("characterScreen").classList.remove("active");
-  document.getElementById("gameNav").style.display = "block";
-  updateUI(); show("status");
-}
-
+// ================= NAV =================
 function show(id) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
+// ================= ITEM GENERATOR =================
+function generateItem() {
+  const possibleQualities = qualities.filter(q => player.level >= q.min);
+  const quality = possibleQualities[Math.floor(Math.random() * possibleQualities.length)];
+
+  const names = classItems[player.class];
+  const name = names[Math.floor(Math.random() * names.length)];
+
+  return {
+    name: name,
+    quality: quality.name,
+    level: player.level,
+    classReq: player.class
+  };
+}
+
+// ================= QUEST =================
 function finishQuest() {
-  const xpGain = 20 + player.level * 5;
-  const goldGain = 15 + player.level * 3;
-  const item = generateItem();
+  const xpGain = 20;
+  const goldGain = 15;
 
   player.xp += xpGain;
   player.gold += goldGain;
+
+  if (player.xp >= 100) {
+    player.level++;
+    player.xp = 0;
+  }
+
+  const item = generateItem();
   player.inventory.push(item);
 
-  levelUpCheck();
-
   document.getElementById("questResult").innerHTML =
-    `Belohnung:<br>+${xpGain} XP<br>+${goldGain} Gold<br>Item: <b>${item}</b>`;
+    `+${xpGain} XP<br>+${goldGain} Gold<br>Item erhalten: <b>${item.name}</b>`;
 
-  save(); updateUI();
+  updateUI();
 }
 
-function runDungeon() {
-  const gold = 30;
-  player.gold += gold;
-  document.getElementById("dungeonText").innerText = `Dungeon geschafft! +${gold} Gold`;
-  save(); updateUI();
-}
-
-function levelUpCheck() {
-  const needed = player.level * 100;
-  if (player.xp >= needed) {
-    player.xp -= needed;
-    player.level++;
-    player.skillPoints++;
-    alert("Level Up!");
-  }
-}
-
-function generateItem() {
-  const qualities = [
-    {name:"Normal", min:1},
-    {name:"Selten", min:5},
-    {name:"Episch", min:10}
-  ];
-  const possible = qualities.filter(q => player.level >= q.min);
-  const q = possible[Math.floor(Math.random()*possible.length)];
-  return `${q.name}es Schwert (Lvl ${player.level})`;
-}
-
-function upgradeSkill(s) {
-  if (player.skillPoints <= 0) return;
-  player.skills[s]++; player.skillPoints--;
-  save(); updateUI();
-}
-
+// ================= UI =================
 function updateUI() {
-  document.getElementById("pName").innerText = player.name;
-  document.getElementById("pClass").innerText = player.class;
+  document.getElementById("klasse").innerText = player.class;
   document.getElementById("level").innerText = player.level;
   document.getElementById("xp").innerText = player.xp;
-  document.getElementById("xpNext").innerText = player.level * 100;
   document.getElementById("gold").innerText = player.gold;
-  document.getElementById("skillPoints").innerText = player.skillPoints;
-  document.getElementById("skillPoints2").innerText = player.skillPoints;
 
   const inv = document.getElementById("inventoryBox");
   inv.innerHTML = "";
+
   if (player.inventory.length === 0) {
     inv.innerText = "Inventar leer";
   } else {
-    player.inventory.forEach(i => {
+    player.inventory.forEach((item, index) => {
       const div = document.createElement("div");
       div.className = "item";
-      div.innerText = i;
+      div.innerHTML = `
+        <b>${item.name}</b><br>
+        Qualität: ${item.quality}<br>
+        Level: ${item.level}
+      `;
+
+      div.onclick = (e) => {
+        e.stopPropagation();
+        alert(
+          `${item.name}\n\nQualität: ${item.quality}\nItem-Level: ${item.level}\nKlasse: ${item.classReq}`
+        );
+      };
+
       inv.appendChild(div);
     });
   }
 }
 
-function save() {
-  localStorage.setItem("player", JSON.stringify(player));
-}
-
-if (player) startGame();
+updateUI();
 </script>
 
 </body>
