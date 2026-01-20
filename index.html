@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 16.0</title>
+<title>Comic Kingdom – Version 19.1</title>
 <style>
   body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:90px}
   nav{position:fixed;top:0;left:0;right:0;background:#fff;padding:10px;display:flex;gap:5px;z-index:100}
@@ -19,32 +19,8 @@
   .skill button:disabled{opacity:0.4}
   .equipSlot{border:1px dashed #999;padding:10px;margin:5px 0;}
   .equipSlot b{display:block;}
-  .tooltip{
-    position:relative;
-    display:inline-block;
-    border-bottom:1px dotted #000;
-  }
-  .tooltip .tiptext{
-    visibility:hidden;
-    width:220px;
-    background:#333;
-    color:#fff;
-    text-align:left;
-    border-radius:6px;
-    padding:8px;
-    position:absolute;
-    z-index:10;
-    bottom:125%;
-    left:50%;
-    transform:translateX(-50%);
-    opacity:0;
-    transition:opacity 0.3s;
-    font-size:12px;
-  }
-  .tooltip:hover .tiptext{
-    visibility:visible;
-    opacity:1;
-  }
+  .log{border:1px solid #ccc;padding:10px;margin:10px 0;background:#fafafa;height:120px;overflow:auto}
+  .field{border:1px solid #ccc;padding:10px;margin:5px 0;}
 </style>
 </head>
 
@@ -89,14 +65,19 @@
     <p>HP: <b id="uiHP"></b></p>
     <p>🟡 Gold: <b id="uiGold"></b></p>
     <p>🍫 Schokolade: <b id="uiChocolate"></b></p>
+    <p>⚡ Energie: <b id="uiEnergy"></b></p>
     <p>Angriff: <b id="uiAtk"></b></p>
     <p>Verteidigung: <b id="uiDef"></b></p>
-    <p>HP-Regeneration: <b id="uiRegen"></b>/5 Minuten</p>
   </div>
 
   <div class="box">
     <h3>Ausrüstung</h3>
     <div id="equipSlots"></div>
+  </div>
+
+  <div class="box">
+    <h3>Nachrichten</h3>
+    <div id="msgLog" class="log"></div>
   </div>
 </div>
 
@@ -112,9 +93,6 @@
 <!-- QUESTS -->
 <div id="quests" class="section">
   <div class="box">
-    <h2>Quests</h2>
-    <div id="questList"></div>
-    <button onclick="acceptQuest()">Quest annehmen</button>
     <button onclick="finishQuest()">Quest abschließen</button>
     <p id="questLog"></p>
   </div>
@@ -124,7 +102,6 @@
 <div id="inventar" class="section">
   <div class="box">
     <h2>Inventar</h2>
-    <button onclick="sortInventory()">Sortieren (Qualität)</button>
     <div id="inventoryBox"></div>
   </div>
 </div>
@@ -149,9 +126,11 @@
     <p>Holz: <b id="uiWood"></b> | Stein: <b id="uiStone"></b> | Nahrung: <b id="uiFood"></b></p>
     <button onclick="collectResources()">Ressourcen sammeln</button>
     <button onclick="buildFarm()">Farm bauen (10 Holz + 10 Stein)</button>
-    <button onclick="upgradeFarm()">Farm upgraden (20 Holz + 20 Stein)</button>
     <p id="farmLog"></p>
-    <p>Farmstatus: <b id="uiFarmStatus"></b></p>
+  </div>
+  <div class="box">
+    <h3>Felder</h3>
+    <div id="fieldsBox"></div>
   </div>
 </div>
 
@@ -170,8 +149,6 @@ function saveAll(chars){
 let chars = loadAll();
 let player = null;
 let activeId = null;
-let autosaveInterval = null;
-let regenInterval = null;
 
 /* ================= SKILLDATA ================= */
 const skillData={
@@ -186,100 +163,9 @@ const skillData={
   Magie:[
     {id:"fokus",name:"Fokus",max:3,desc:"+5% XP",req:null},
     {id:"arkane",name:"Arkane Macht",max:5,desc:"+3 Angriff",req:{fokus:2}}
-  ],
-  Farm:[
-    {id:"bauer",name:"Bauernweisheit",max:5,desc:"+10% Ressourcen",req:null},
-    {id:"agrar",name:"Agrar-Meister",max:3,desc:"+20% Ressourcen",req:{bauer:3}}
-  ],
-  Schmiede:[
-    {id:"schmied",name:"Schmiedekunst",max:5,desc:"+10% Itemqualität",req:null},
-    {id:"meisterschmied",name:"Meisterschmied",max:3,desc:"+20% Itemqualität",req:{schmied:3}}
   ]
 };
 const allSkills = Object.values(skillData).flat();
-
-/* ================= QUESTS ================= */
-const questPool = [
-  {id:"q1",name:"Ratten im Keller",lvl:1,xp:40,gold:20,lootChance:0.4,desc:"Besiege die Ratten und finde Loot."},
-  {id:"q2",name:"Verlorene Münzen",lvl:2,xp:60,gold:35,lootChance:0.5,desc:"Finde verlorene Münzen in der Stadt."},
-  {id:"q3",name:"Banditenlager",lvl:3,xp:90,gold:50,lootChance:0.6,desc:"Kämpfe gegen Banditen und lootet wertvolle Items."}
-];
-let activeQuest = null;
-
-/* ================= ITEM SYSTEM ================= */
-const slots = ["Waffe","Helm","Rüstung","Ring"];
-const qualities = [
-  {n:"Gewöhnlich",atk:1,def:1,w:50},
-  {n:"Ungewöhnlich",atk:2,def:2,w:25},
-  {n:"Selten",atk:3,def:3,w:15},
-  {n:"Episch",atk:5,def:5,w:7},
-  {n:"Legendär",atk:8,def:8,w:3}
-];
-
-const itemPools = {
-  Waffe:["Schwert","Axt","Stab","Dolch","Seelensichel"],
-  Helm:["Helm","Kapuzenhelm","Knochenkrone"],
-  Rüstung:["Plattenrüstung","Magierrobe","Lederrüstung"],
-  Ring:["Ring der Kraft","Ring der Abwehr"]
-};
-
-function weightedQuality(){
-  const pool=[];
-  qualities.forEach(q=>{
-    for(let i=0;i<q.w;i++) pool.push(q);
-  });
-  return pool[Math.floor(Math.random()*pool.length)];
-}
-
-function generateItem(){
-  const q=weightedQuality();
-  const slot=slots[Math.floor(Math.random()*slots.length)];
-  const names=itemPools[slot];
-  return {
-    id: Date.now().toString() + Math.random(),
-    name: names[Math.floor(Math.random()*names.length)],
-    quality: q.n,
-    atk: q.atk,
-    def: q.def,
-    slot,
-    levelReq: Math.max(1, Math.floor(Math.random()*player.level) + 1)
-  };
-}
-
-/* ================= STATS ================= */
-function calcStats(){
-  let atk = 5 + player.level;
-  let def = 5 + player.level;
-
-  atk += player.skills.kraft * 2;
-  atk += player.skills.arkane * 3;
-  def += player.skills.zaehigkeit * 2;
-
-  atk *= 1 + player.skills.waffen * 0.1;
-  def *= 1 + player.skills.eisenhaut * 0.1;
-
-  // add equip bonuses
-  for(const s of slots){
-    const it = player.equip[s];
-    if(it){
-      atk += it.atk;
-      def += it.def;
-    }
-  }
-
-  // Farm/Schmiede Skills
-  const regenBonus = Math.floor(player.skills.bauer * 0.1 + player.skills.agrar * 0.2);
-  const xpBonus = player.skills.fokus * 0.05;
-  const lootBonus = player.skills.schmied * 0.05 + player.skills.meisterschmied * 0.1;
-
-  return {
-    atk: Math.floor(atk),
-    def: Math.floor(def),
-    regenBonus,
-    xpBonus,
-    lootBonus
-  };
-}
 
 /* ================= NAV ================= */
 function show(id){
@@ -336,9 +222,14 @@ function createCharacter(){
     stone: 0,
     food: 0,
     farmBuilt: false,
-    farmLevel: 0,
-    farmTimer: 0,
-    lastSave: Date.now()
+    energy: 20,
+    energyMax: 20,
+    lastSaved: Date.now(),
+    fields: [
+      {id:1, planted:false, readyAt:0},
+      {id:2, planted:false, readyAt:0},
+      {id:3, planted:false, readyAt:0}
+    ]
   };
 
   allSkills.forEach(s=> newChar.skills[s.id]=0);
@@ -359,105 +250,65 @@ function selectChar(id){
   player = JSON.parse(JSON.stringify(chars.find(c=>c.id===id)));
   activeId = id;
   document.getElementById("gameNav").style.display = "flex";
+
+  // Offline processing
+  processOffline();
+
   show("status");
   updateUI();
-  startAutoSave();
-  startRegen();
-  renderQuestList();
 }
 
 function logout(){
-  stopAutoSave();
-  stopRegen();
   player = null;
   activeId = null;
   document.getElementById("gameNav").style.display = "none";
   show("charSelect");
 }
 
-/* ================= AUTO SAVE ================= */
-function startAutoSave(){
-  if(autosaveInterval) clearInterval(autosaveInterval);
-  autosaveInterval = setInterval(()=>{
-    save();
-  }, 10000); // alle 10 Sekunden
-}
-function stopAutoSave(){
-  if(autosaveInterval) clearInterval(autosaveInterval);
-}
+/* ================= OFFLINE PROCESSING ================= */
+function processOffline(){
+  if(!player) return;
 
-/* ================= HP REGEN ================= */
-function startRegen(){
-  if(regenInterval) clearInterval(regenInterval);
-  regenInterval = setInterval(()=>{
-    if(!player) return;
-    const stats = calcStats();
-    const regen = 1 + stats.regenBonus; // 1 HP + Bonus
-    player.hp = Math.min(player.hpMax, player.hp + regen);
-    updateUI();
-  }, 300000); // alle 5 Minuten
-}
-function stopRegen(){
-  if(regenInterval) clearInterval(regenInterval);
+  const now = Date.now();
+  const diff = now - (player.lastSaved || now);
+
+  // max 24h offline
+  const maxOffline = 24 * 60 * 60 * 1000;
+  const actualDiff = Math.min(diff, maxOffline);
+
+  // Energy regen: 1 energy per 2 minutes
+  const energyRegenMs = 2 * 60 * 1000;
+  const energyGain = Math.floor(actualDiff / energyRegenMs);
+  player.energy = Math.min(player.energyMax, player.energy + energyGain);
+
+  player.lastSaved = now;
 }
 
 /* ================= QUESTS ================= */
-function renderQuestList(){
-  const q = document.getElementById("questList");
-  q.innerHTML = "";
-  questPool.forEach(quest => {
-    q.innerHTML += `
-      <div class="item">
-        <b>${quest.name}</b> (Level ${quest.lvl})<br>
-        ${quest.desc}<br>
-        XP: ${quest.xp} | Gold: ${quest.gold}<br>
-        <button onclick="setActiveQuest('${quest.id}')">Annehmen</button>
-      </div>
-    `;
-  });
-}
-
-function setActiveQuest(id){
-  activeQuest = questPool.find(q=>q.id===id);
-  document.getElementById("questLog").innerText = `Aktive Quest: ${activeQuest.name}`;
-}
-
-function acceptQuest(){
-  if(!activeQuest) {
-    alert("Wähle zuerst eine Quest aus.");
-    return;
-  }
-  document.getElementById("questLog").innerText = `Quest angenommen: ${activeQuest.name}`;
-}
-
 function finishQuest(){
-  if(!activeQuest){
-    alert("Keine Quest aktiv.");
+  if(player.energy <= 0){
+    addMsg("Keine Energie mehr! Warte oder kaufe Energie.");
     return;
   }
 
-  if(player.level < activeQuest.lvl){
-    alert("Du bist zu niedrig level für diese Quest.");
-    return;
-  }
+  player.energy--;
+  let xpGain = 40 * (1 + player.skills.fokus * 0.05);
+  player.xp += Math.floor(xpGain);
+  player.gold += 20;
 
-  // XP + Gold + Loot
-  const stats = calcStats();
-  let xpGain = Math.floor(activeQuest.xp * (1 + stats.xpBonus));
-  player.xp += xpGain;
-  player.gold += activeQuest.gold;
-
-  let choc = Math.random() < 0.1 ? 1 : 0;
+  let choc = Math.random()<0.1 ? 1 : 0;
   player.chocolate += choc;
 
+  // Loot with inventory limit
   let loot = "Kein Loot.";
-  if(Math.random() < activeQuest.lootChance + stats.lootBonus){
+  if(player.inventory.length < 30 && Math.random() < 0.4){
     const it = generateItem();
     player.inventory.push(it);
     loot = `Loot: ${it.name} (${it.quality})`;
+  } else if(player.inventory.length >= 30){
+    loot = "Inventar voll – kein Loot.";
   }
 
-  // Level up
   while(player.xp >= player.xpMax){
     player.xp -= player.xpMax;
     player.level++;
@@ -468,10 +319,114 @@ function finishQuest(){
   }
 
   document.getElementById("questLog").innerHTML =
-    `Quest abgeschlossen!<br>+${xpGain} XP<br>+${activeQuest.gold} Gold<br>+${choc} Schokolade<br>${loot}`;
+    `+${Math.floor(xpGain)} XP<br>+20 Gold<br>+${choc} Schokolade<br>${loot}`;
+
+  addMsg(`Quest beendet: +${Math.floor(xpGain)} XP, +20 Gold`);
 
   save();
   updateUI();
+}
+
+/* ================= ITEM SYSTEM ================= */
+const slots = ["Waffe","Helm","Rüstung","Ring"];
+const qualities = [
+  {n:"Gewöhnlich",atk:1,def:1,w:50},
+  {n:"Ungewöhnlich",atk:2,def:2,w:25},
+  {n:"Selten",atk:3,def:3,w:15},
+  {n:"Episch",atk:5,def:5,w:7},
+  {n:"Legendär",atk:8,def:8,w:3}
+];
+
+const itemPools = {
+  Waffe:["Schwert","Axt","Stab","Dolch","Seelensichel"],
+  Helm:["Helm","Kapuzenhelm","Knochenkrone"],
+  Rüstung:["Plattenrüstung","Magierrobe","Lederrüstung"],
+  Ring:["Ring der Kraft","Ring der Abwehr"]
+};
+
+function weightedQuality(){
+  const pool=[];
+  qualities.forEach(q=>{
+    for(let i=0;i<q.w;i++) pool.push(q);
+  });
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
+function generateItem(){
+  const q=weightedQuality();
+  const slot=slots[Math.floor(Math.random()*slots.length)];
+  const names=itemPools[slot];
+  return {
+    id: Date.now().toString() + Math.random(),
+    name: names[Math.floor(Math.random()*names.length)],
+    quality: q.n,
+    atk: q.atk + Math.floor(player.level/5),
+    def: q.def + Math.floor(player.level/5),
+    slot,
+    levelReq: Math.max(1, Math.floor(Math.random()*player.level) + 1)
+  };
+}
+
+/* ================= STATS ================= */
+function calcStats(){
+  let atk = 5 + player.level;
+  let def = 5 + player.level;
+
+  atk += player.skills.kraft * 2;
+  atk += player.skills.arkane * 3;
+  def += player.skills.zaehigkeit * 2;
+
+  atk *= 1 + player.skills.waffen * 0.1;
+  def *= 1 + player.skills.eisenhaut * 0.1;
+
+  // add equip bonuses
+  for(const s of slots){
+    const it = player.equip[s];
+    if(it){
+      atk += it.atk;
+      def += it.def;
+    }
+  }
+
+  return {atk: Math.floor(atk), def: Math.floor(def)};
+}
+
+/* ================= SKILLS ================= */
+function canLearn(skill){
+  if(player.skillPoints<=0) return false;
+  if(player.skills[skill.id]>=skill.max) return false;
+  if(!skill.req) return true;
+
+  const key = Object.keys(skill.req)[0];
+  return player.skills[key] >= skill.req[key];
+}
+
+function learnSkill(id){
+  const skill = allSkills.find(s=>s.id===id);
+  if(!skill || !canLearn(skill)) return;
+  player.skills[id]++;
+  player.skillPoints--;
+  save();
+  updateUI();
+  addMsg(`Skill gelernt: ${skill.name}`);
+}
+
+function renderSkills(){
+  skillBox.innerHTML="";
+  for(const tree in skillData){
+    skillBox.innerHTML += `<h3>${tree}</h3>`;
+    skillData[tree].forEach(s=>{
+      const lvl = player.skills[s.id];
+      const locked = !canLearn(s);
+      skillBox.innerHTML += `
+        <div class="skill ${locked && lvl<s.max ? "locked":""}">
+          <b>${s.name}</b> (${lvl}/${s.max})<br>
+          ${s.desc}<br>
+          ${s.req ? `<small>Voraussetzung: ${Object.keys(s.req)[0]} ${Object.values(s.req)[0]}</small>` : ""}
+          <button ${!canLearn(s) ? "disabled":""} onclick="learnSkill('${s.id}')">+</button>
+        </div>`;
+    });
+  }
 }
 
 /* ================= INVENTAR UI ================= */
@@ -485,12 +440,8 @@ function updateInventory(){
   player.inventory.forEach(it=>{
     const d=document.createElement("div");
     d.className="item";
-    d.innerHTML = `
-      <b>${it.name}</b> (${it.quality})<br>
-      ${it.slot} | Level ${it.levelReq}<br>
-      <button onclick="showItem('${it.id}')">Details</button>
-      <button onclick="sellItem('${it.id}')">Verkaufen</button>
-    `;
+    d.innerHTML = `<b>${it.name}</b> (${it.quality})<br>${it.slot} | Level ${it.levelReq}`;
+    d.onclick = ()=> showItem(it.id);
     inv.appendChild(d);
   });
 }
@@ -502,38 +453,13 @@ function showItem(id){
   let canEquip = player.level >= it.levelReq;
   let action = canEquip ? "Ausrüsten" : "Nicht levelbar";
 
-  let current = player.equip[it.slot];
-  let compare = current ? `Aktuell: ${current.name} (+${current.atk}/${current.def})` : "Aktuell: leer";
-
   if(confirm(
-    `Item: ${it.name}\nQualität: ${it.quality}\nSlot: ${it.slot}\nAngriff: ${it.atk}\nVerteidigung: ${it.def}\nLevelanforderung: ${it.levelReq}\n\n${compare}\n\n${canEquip ? "Willst du es ausrüsten?" : "Du bist zu niedrig level."}`
+    `Item: ${it.name}\nQualität: ${it.quality}\nSlot: ${it.slot}\nAngriff: ${it.atk}\nVerteidigung: ${it.def}\nLevelanforderung: ${it.levelReq}\n\n${canEquip ? "Willst du es ausrüsten?" : "Du bist zu niedrig level."}`
   )){
     if(canEquip){
       equipItem(it.id);
     }
   }
-}
-
-function sellItem(id){
-  const it = player.inventory.find(x=>x.id===id);
-  if(!it) return;
-
-  const sellPrice = Math.floor((it.atk + it.def) * 5);
-  if(confirm(`Item verkaufen für ${sellPrice} Gold?`)){
-    player.gold += sellPrice;
-    player.inventory = player.inventory.filter(x=>x.id!==id);
-    updateUI();
-    save();
-  }
-}
-
-function sortInventory(){
-  player.inventory.sort((a,b)=>{
-    const qa = qualities.findIndex(q=>q.n===a.quality);
-    const qb = qualities.findIndex(q=>q.n===b.quality);
-    return qb - qa;
-  });
-  updateInventory();
 }
 
 /* ================= EQUIP ================= */
@@ -550,8 +476,10 @@ function equipItem(id){
   const old = player.equip[slot];
   player.equip[slot] = it;
 
+  // remove from inventory
   player.inventory = player.inventory.filter(x=>x.id!==id);
 
+  // old item goes zurück
   if(old) player.inventory.push(old);
 
   save();
@@ -577,54 +505,34 @@ function openBuilding(id){
   const box = document.getElementById("buildingBox");
   box.innerHTML="";
   if(id==="taverne"){
-    box.innerHTML = `
-      <p>🛡️ Taverne: Quests & Geschichten</p>
-      <p class="empty">(Jetzt mit echten Quests & Loot)</p>
-    `;
+    box.innerHTML = "<p>🛡️ Taverne: Quests & Geschichten (in Entwicklung)</p>";
   }
   if(id==="schmiede"){
-    box.innerHTML = `
-      <p>🛠️ Schmiede: Item Crafting & Upgrade</p>
-      <button onclick="craftItem()">Item craften (10 Gold)</button>
-    `;
+    box.innerHTML = "<p>🛠️ Schmiede: Item Crafting & Upgrade (in Entwicklung)</p>";
   }
   if(id==="arena"){
-    box.innerHTML = `
-      <p>⚔️ Arena: PvP (Einfacher Kampf gegen Gegner)</p>
-      <button onclick="arenaFight()">Kampf starten</button>
-    `;
+    box.innerHTML = "<p>⚔️ Arena: PvP (in Entwicklung)</p>";
   }
   if(id==="shop"){
-    box.innerHTML = `
-      <p>🛒 Markt: Kaufen & Verkaufen</p>
-      <button onclick="buyPotion()">Trank kaufen (5 Gold)</button>
-    `;
+    box.innerHTML = "<p>🛒 Markt: Kaufen & Verkaufen (in Entwicklung)</p>";
   }
   if(id==="alchemist"){
-    box.innerHTML = `
-      <p>🧪 Alchemist: Tränke</p>
-      <button onclick="usePotion()">Trank benutzen (stellt HP wieder her)</button>
-    `;
+    box.innerHTML = "<p>🧪 Alchemist: Tränke (in Entwicklung)</p>";
   }
 }
 
 /* ================= FARM ================= */
 function collectResources(){
-  const bonus = 1 + player.skills.bauer * 0.1 + player.skills.agrar * 0.2;
-  const gain = Math.floor(5 * bonus);
-  player.wood += gain;
-  player.stone += gain;
-  player.food += gain;
-  document.getElementById("farmLog").innerText = `+${gain} Holz, +${gain} Stein, +${gain} Nahrung`;
+  player.wood += 5;
+  player.stone += 5;
+  player.food += 5;
+  document.getElementById("farmLog").innerText = "+5 Holz, +5 Stein, +5 Nahrung";
+  addMsg("Ressourcen gesammelt: +5 Holz, +5 Stein, +5 Nahrung");
   save();
   updateUI();
 }
 
 function buildFarm(){
-  if(player.farmBuilt){
-    alert("Farm ist bereits gebaut.");
-    return;
-  }
   if(player.wood < 10 || player.stone < 10){
     alert("Nicht genug Ressourcen.");
     return;
@@ -632,124 +540,90 @@ function buildFarm(){
   player.wood -= 10;
   player.stone -= 10;
   player.farmBuilt = true;
-  player.farmLevel = 1;
-  player.farmTimer = Date.now();
   document.getElementById("farmLog").innerText = "Farm gebaut! Produktion startet.";
+  addMsg("Farm gebaut! Produktion startet.");
   save();
   updateUI();
 }
 
-function upgradeFarm(){
-  if(!player.farmBuilt){
-    alert("Du musst zuerst eine Farm bauen.");
+/* ================= FARM FIELDS ================= */
+function plantField(id){
+  const f = player.fields.find(x=>x.id===id);
+  if(!f) return;
+  if(f.planted){
+    addMsg("Feld ist bereits gepflanzt.");
     return;
   }
-  if(player.wood < 20 || player.stone < 20){
-    alert("Nicht genug Ressourcen.");
+  if(player.food < 5){
+    addMsg("Nicht genug Nahrung zum Pflanzen.");
     return;
   }
-  player.wood -= 20;
-  player.stone -= 20;
-  player.farmLevel++;
-  document.getElementById("farmLog").innerText = "Farm upgraded! Produktion steigt.";
+  player.food -= 5;
+  f.planted = true;
+  f.readyAt = Date.now() + 5 * 60 * 1000; // 5 Minuten
+  addMsg("Feld gepflanzt! Ernte in 5 Minuten.");
   save();
   updateUI();
 }
 
-/* ================= SHOP ================= */
-function buyPotion(){
-  if(player.gold < 5){
-    alert("Nicht genug Gold.");
+function harvestField(id){
+  const f = player.fields.find(x=>x.id===id);
+  if(!f || !f.planted) return;
+
+  if(Date.now() < f.readyAt){
+    addMsg("Noch nicht reif.");
     return;
   }
-  player.gold -= 5;
-  player.inventory.push({id: Date.now().toString()+Math.random(), name:"Heiltrank", quality:"Gewöhnlich", atk:0, def:0, slot:"Potion", levelReq:1});
-  updateUI();
-  save();
-}
-
-/* ================= POTION ================= */
-function usePotion(){
-  const pot = player.inventory.find(x=>x.slot==="Potion");
-  if(!pot){
-    alert("Kein Trank im Inventar.");
-    return;
-  }
-  player.hp = Math.min(player.hpMax, player.hp + 50);
-  player.inventory = player.inventory.filter(x=>x.id!==pot.id);
-  updateUI();
-  save();
-}
-
-/* ================= ARENA ================= */
-function arenaFight(){
-  const stats = calcStats();
-  const enemy = {
-    lvl: player.level,
-    atk: Math.floor(5 + player.level * 1.2),
-    def: Math.floor(5 + player.level * 1.1),
-    hp: 80 + player.level * 10
-  };
-
-  let playerHp = player.hp;
-  let enemyHp = enemy.hp;
-
-  while(playerHp > 0 && enemyHp > 0){
-    const playerDmg = Math.max(1, stats.atk - enemy.def + Math.floor(Math.random()*5));
-    enemyHp -= playerDmg;
-    if(enemyHp <= 0) break;
-
-    const enemyDmg = Math.max(1, enemy.atk - stats.def + Math.floor(Math.random()*5));
-    playerHp -= enemyDmg;
-  }
-
-  if(playerHp > 0){
-    player.hp = playerHp;
-    player.gold += 10;
-    document.getElementById("questLog").innerHTML = "Arena gewonnen! +10 Gold";
-  } else {
-    player.hp = 1;
-    document.getElementById("questLog").innerHTML = "Arena verloren... Du überlebst mit 1 HP";
-  }
+  f.planted = false;
+  f.readyAt = 0;
+  player.food += 10 * (player.farmBuilt ? 2 : 1);
+  addMsg("Feld geerntet! +"+(10*(player.farmBuilt?2:1))+" Nahrung");
   save();
   updateUI();
 }
 
-/* ================= SKILLS ================= */
-function canLearn(skill){
-  if(player.skillPoints<=0) return false;
-  if(player.skills[skill.id]>=skill.max) return false;
-  if(!skill.req) return true;
+function renderFields(){
+  const box = document.getElementById("fieldsBox");
+  box.innerHTML = "";
+  player.fields.forEach(f=>{
+    let status = f.planted ? "Gepflanzt" : "Leer";
+    let btn = f.planted ? "Ernten" : "Pflanzen";
+    let info = "";
+    if(f.planted){
+      const remaining = Math.max(0, f.readyAt - Date.now());
+      if(remaining <= 0){
+        status = "Bereit";
+      } else {
+        const min = Math.floor(remaining / 60000);
+        const sec = Math.floor((remaining % 60000) / 1000);
+        info = ` (noch ${min}m ${sec}s)`;
+      }
+    }
 
-  const key = Object.keys(skill.req)[0];
-  return player.skills[key] >= skill.req[key];
+    box.innerHTML += `
+      <div class="field">
+        <b>Feld ${f.id}</b> - ${status}${info}<br>
+        <button onclick="${f.planted ? `harvestField(${f.id})` : `plantField(${f.id})`}">${btn}</button>
+      </div>
+    `;
+  });
 }
 
-function learnSkill(id){
-  const skill = allSkills.find(s=>s.id===id);
-  if(!skill || !canLearn(skill)) return;
-  player.skills[id]++;
-  player.skillPoints--;
+/* ================= MESSAGES ================= */
+function addMsg(txt){
+  const box = document.getElementById("msgLog");
+  const time = new Date().toLocaleTimeString();
+  box.innerHTML = `[${time}] ${txt}<br>` + box.innerHTML;
+}
+
+/* ================= ENERGY REGEN ================= */
+function regenEnergy(){
+  if(!player) return;
+  if(player.energy >= player.energyMax) return;
+
+  player.energy++;
   save();
   updateUI();
-}
-
-function renderSkills(){
-  skillBox.innerHTML="";
-  for(const tree in skillData){
-    skillBox.innerHTML += `<h3>${tree}</h3>`;
-    skillData[tree].forEach(s=>{
-      const lvl = player.skills[s.id];
-      const locked = !canLearn(s);
-      skillBox.innerHTML += `
-        <div class="skill ${locked && lvl<s.max ? "locked":""}">
-          <b>${s.name}</b> (${lvl}/${s.max})<br>
-          ${s.desc}<br>
-          ${s.req ? `<small>Voraussetzung: ${Object.keys(s.req)[0]} ${Object.values(s.req)[0]}</small>` : ""}
-          <button ${!canLearn(s) ? "disabled":""} onclick="learnSkill('${s.id}')">+</button>
-        </div>`;
-    });
-  }
 }
 
 /* ================= UI ================= */
@@ -763,9 +637,9 @@ function updateUI(){
   uiHP.textContent = `${player.hp}/${player.hpMax}`;
   uiGold.textContent = player.gold;
   uiChocolate.textContent = player.chocolate;
+  uiEnergy.textContent = `${player.energy}/${player.energyMax}`;
   uiAtk.textContent = s.atk;
   uiDef.textContent = s.def;
-  uiRegen.textContent = 1 + s.regenBonus;
 
   uiWood.textContent = player.wood;
   uiStone.textContent = player.stone;
@@ -773,11 +647,11 @@ function updateUI(){
 
   uiSkillPoints.textContent = player.skillPoints;
 
-  uiFarmStatus.textContent = player.farmBuilt ? `Level ${player.farmLevel}` : "Nicht gebaut";
-
   renderSkills();
   updateInventory();
   renderEquip();
+  renderFields();
+
   save();
 }
 
@@ -786,13 +660,15 @@ function save(){
   if(!player || !activeId) return;
   const idx = chars.findIndex(c=>c.id===activeId);
   if(idx === -1) return;
-  player.lastSave = Date.now();
+  player.lastSaved = Date.now();
   chars[idx] = JSON.parse(JSON.stringify(player));
   saveAll(chars);
 }
 
 /* ================= INIT ================= */
 renderCharList();
+setInterval(regenEnergy, 2 * 60 * 1000); // alle 2 Minuten Energie
+setInterval(updateUI, 1000); // UI update für Farm countdown
 </script>
 </body>
 </html>
