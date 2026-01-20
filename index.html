@@ -71,10 +71,10 @@ nav button{flex:1;padding:10px}
  <div class="box">
   <p><b id="uiName"></b> – Level <b id="uiLevel"></b></p>
 
-  HP
+  <p>❤️ HP: <span id="uiHPText"></span></p>
   <div class="bar"><span id="hpBar"></span></div>
 
-  XP
+  <p>⭐ XP: <span id="uiXPText"></span></p>
   <div class="bar xp"><span id="xpBar"></span></div>
 
   <p>🟡 Gold: <b id="uiGold"></b></p>
@@ -112,7 +112,7 @@ nav button{flex:1;padding:10px}
 </div>
 
 <script>
-const SAVE_KEY="ck_v20_final";
+const SAVE_KEY="ck_v20_fixed_final";
 let chars=JSON.parse(localStorage.getItem(SAVE_KEY))||[];
 let player=null;
 
@@ -130,7 +130,8 @@ function notify(t){
 }
 
 function generateQuest(){
- const difficulty=["leicht","normal","schwer"][rand(["a","b","c"])];
+ const diffs=["leicht","normal","schwer"];
+ const difficulty=diffs[rand(diffs)];
  let duration=4000,reward=1;
  if(difficulty==="leicht"){duration=3000;reward=0.8}
  if(difficulty==="schwer"){duration=7000;reward=1.5}
@@ -145,7 +146,7 @@ function generateQuest(){
 function createCharacter(){
  const name=newName.value.trim();
  const cls=newClass.value;
- if(name.length<2||!cls)return;
+ if(name.length<2||!cls)return alert("Name & Klasse wählen");
 
  const hp={Krieger:120,Magier:90,Kundschafter:100}[cls];
  chars.push({
@@ -164,13 +165,6 @@ function selectChar(id){
  notify(`🎮 ${player.name} spielt`);
 }
 
-function deleteChar(id){
- if(confirm("Charakter löschen?")){
-  chars=chars.filter(c=>c.id!==id);
-  save();renderList();
- }
-}
-
 function startQuest(){
  if(player.quest)return;
  const q=generateQuest();
@@ -183,6 +177,7 @@ function cancelQuest(){
  if(player.quest){
   player.quest=null;
   notify("❌ Quest abgebrochen");
+  updateUI();
  }
 }
 
@@ -192,13 +187,8 @@ function checkQuest(){
   const q=player.quest;
   player.quest=null;
 
-  let gold=(20+player.level*5)*q.reward;
-  let xp=(40+player.level*10)*q.reward;
-
-  if(player.class==="Krieger")gold*=1.1;
-  if(player.class==="Magier")xp*=1.1;
-
-  gold=Math.floor(gold);xp=Math.floor(xp);
+  let gold=Math.floor((20+player.level*5)*q.reward);
+  let xp=Math.floor((40+player.level*10)*q.reward);
 
   player.gold+=gold;
   gainXP(xp);
@@ -209,6 +199,7 @@ function checkQuest(){
   }
 
   notify(`✅ Quest abgeschlossen (+${gold} Gold, +${xp} XP)`);
+  updateUI();
  }
 }
 
@@ -259,13 +250,16 @@ function updateUI(){
  uiLevel.textContent=player.level;
  uiGold.textContent=player.gold;
  uiChoco.textContent=player.chocolate;
- hpBar.style.width=(player.hp/player.hpMax*100)+"%";
- xpBar.style.width=(player.xp/player.xpMax*100)+"%";
 
- if(player.quest){
-  const t=Math.ceil((player.quest.end-Date.now())/1000);
-  questBox.innerHTML=`<b>${player.quest.name}</b><br>${player.quest.desc}<br>⏳ ${t}s`;
- }else questBox.innerHTML="<i>Keine aktive Quest</i>";
+ uiHPText.textContent=`${player.hp} / ${player.hpMax}`;
+ uiXPText.textContent=`${player.xp} / ${player.xpMax}`;
+
+ hpBar.style.width=(player.hp/Math.max(1,player.hpMax)*100)+"%";
+ xpBar.style.width=(player.xp/Math.max(1,player.xpMax)*100)+"%";
+
+ questBox.innerHTML=player.quest
+  ? `<b>${player.quest.name}</b><br>${player.quest.desc}`
+  : "<i>Keine aktive Quest</i>";
 
  save();
 }
