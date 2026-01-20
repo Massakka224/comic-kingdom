@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 11.2</title>
+<title>Comic Kingdom – Version 11.4.2</title>
 
 <style>
 body {
   font-family: Arial, sans-serif;
   background:#f2f2f2;
   margin:0;
-  padding-top:80px;
+  padding-top:90px;
 }
 
 nav {
@@ -20,7 +20,7 @@ nav {
   padding:10px;
   display:flex;
   gap:5px;
-  z-index:10;
+  z-index:100;
 }
 
 nav button {
@@ -52,20 +52,21 @@ nav button {
 <body>
 
 <nav>
-<button onclick="show('status')">Status</button>
-<button onclick="show('quests')">Quests</button>
-<button onclick="show('stadt')">Stadt</button>
-<button onclick="show('inventar')">Inventar</button>
+<button onclick="showSection('status')">Status</button>
+<button onclick="showSection('quests')">Quests</button>
+<button onclick="showSection('stadt')">Stadt</button>
+<button onclick="showSection('inventar')">Inventar</button>
 </nav>
 
 <!-- STATUS -->
 <div id="status" class="section active">
 <div class="box">
 <h2>Status</h2>
-<p>Klasse: <b id="klasse"></b></p>
-<p>Level: <b id="level"></b></p>
-<p>Erfahrung: <b id="xp"></b></p>
-<p>Gold: <b id="gold"></b></p>
+<p>Klasse: <b id="uiClass"></b></p>
+<p>Level: <b id="uiLevel"></b></p>
+<p>XP: <b id="uiXP"></b></p>
+<p>Gold: <b id="uiGold"></b></p>
+<button onclick="resetGame()">Spielstand löschen</button>
 </div>
 </div>
 
@@ -74,7 +75,7 @@ nav button {
 <div class="box">
 <h2>Quest</h2>
 <button onclick="finishQuest()">Quest abschließen</button>
-<p id="questResult"></p>
+<p id="questLog"></p>
 </div>
 </div>
 
@@ -83,9 +84,9 @@ nav button {
 <div class="box">
 <h2>Stadt</h2>
 <ul>
-<li>Schmiede (Upgrade)</li>
-<li>Taverne (Quests)</li>
-<li>Magier (Verzaubern)</li>
+<li>🏭 Schmiede – später</li>
+<li>🍺 Taverne – später</li>
+<li>🧙 Magierturm – später</li>
 </ul>
 </div>
 </div>
@@ -99,17 +100,45 @@ nav button {
 </div>
 
 <script>
-// ================= SPIELER =================
-const player = {
+// ===================== VERSION =====================
+const GAME_VERSION = "11.4.2";
+
+// ===================== SAVE SYSTEM =====================
+function loadPlayer() {
+  try {
+    const data = localStorage.getItem("comicKingdomSave");
+    if (!data) return null;
+
+    const parsed = JSON.parse(data);
+
+    if (parsed.version !== GAME_VERSION) {
+      parsed.version = GAME_VERSION; // Migration
+    }
+
+    return parsed;
+  } catch {
+    localStorage.removeItem("comicKingdomSave");
+    return null;
+  }
+}
+
+function savePlayer() {
+  localStorage.setItem("comicKingdomSave", JSON.stringify(player));
+}
+
+// ===================== PLAYER =====================
+let player = loadPlayer() || {
+  version: GAME_VERSION,
   class: "Krieger",
   level: 1,
   xp: 0,
   xpMax: 100,
   gold: 50,
-  inventory: []
+  inventory: [],
+  nextItemId: 1
 };
 
-// ================= KLASSEN-ITEMS =================
+// ===================== DATA =====================
 const classItems = {
   Krieger: ["Schwert der Ehre","Axt des Zorns","Titanenklinge"],
   Magier: ["Stab der Weisheit","Flammenfokus"],
@@ -117,34 +146,47 @@ const classItems = {
   Nekromant: ["Seelensichel","Fluchstab"]
 };
 
-// ================= QUALITÄTEN =================
+const itemSlots = ["Waffe","Helm","Rüstung","Ring"];
+
 const qualities = [
-  { name:"Gewöhnlich", min:1 },
-  { name:"Ungewöhnlich", min:20 },
-  { name:"Selten", min:30 },
-  { name:"Episch", min:100 },
-  { name:"Legendär", min:150 }
+  { name:"Gewöhnlich", min:1, weight:50 },
+  { name:"Ungewöhnlich", min:20, weight:25 },
+  { name:"Selten", min:30, weight:15 },
+  { name:"Episch", min:100, weight:7 },
+  { name:"Legendär", min:150, weight:3 }
 ];
 
-// ================= NAV =================
-function show(id) {
+// ===================== NAV =====================
+function showSection(id) {
   document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+  document.getElementById(id)?.classList.add("active");
 }
 
-// ================= ITEM =================
-function generateItem() {
+// ===================== ITEM SYSTEM =====================
+function getWeightedQuality() {
   const possible = qualities.filter(q => player.level >= q.min);
-  const quality = possible[Math.floor(Math.random() * possible.length)];
+  const pool = [];
+  possible.forEach(q => {
+    for (let i = 0; i < q.weight; i++) pool.push(q);
+  });
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function generateItem() {
+  const quality = getWeightedQuality();
   const names = classItems[player.class];
+
   return {
+    id: player.nextItemId++,
     name: names[Math.floor(Math.random() * names.length)],
     quality: quality.name,
-    level: player.level
+    level: player.level,
+    slot: itemSlots[Math.floor(Math.random() * itemSlots.length)],
+    classReq: player.class
   };
 }
 
-// ================= QUEST =================
+// ===================== QUEST =====================
 function finishQuest() {
   const xpGain = 40;
   const goldGain = 20;
@@ -153,47 +195,65 @@ function finishQuest() {
   player.gold += goldGain;
 
   let leveledUp = false;
-  if (player.xp >= player.xpMax) {
-    player.level++;
+  while (player.xp >= player.xpMax) {
     player.xp -= player.xpMax;
+    player.level++;
+    player.xpMax = Math.floor(player.xpMax * 1.25);
     leveledUp = true;
   }
 
   const item = generateItem();
   player.inventory.push(item);
 
-  document.getElementById("questResult").innerHTML =
-    `+${xpGain} XP<br>+${goldGain} Gold<br>
-     Item: <b>${item.name}</b><br>
+  document.getElementById("questLog").innerHTML =
+    `+${xpGain} XP<br>
+     +${goldGain} Gold<br>
+     Beute: <b>${item.name}</b> (${item.quality})<br>
      ${leveledUp ? "<b>LEVEL UP!</b>" : ""}`;
 
+  savePlayer();
   updateUI();
 }
 
-// ================= UI =================
+// ===================== RESET =====================
+function resetGame() {
+  if (!confirm("Willst du deinen Spielstand wirklich löschen?")) return;
+  localStorage.removeItem("comicKingdomSave");
+  location.reload();
+}
+
+// ===================== UI =====================
 function updateUI() {
-  document.getElementById("klasse").innerText = player.class;
-  document.getElementById("level").innerText = player.level;
-  document.getElementById("xp").innerText = `${player.xp} / ${player.xpMax}`;
-  document.getElementById("gold").innerText = player.gold;
+  document.getElementById("uiClass").innerText = player.class;
+  document.getElementById("uiLevel").innerText = player.level;
+  document.getElementById("uiXP").innerText = `${player.xp} / ${player.xpMax}`;
+  document.getElementById("uiGold").innerText = player.gold;
 
   const inv = document.getElementById("inventoryBox");
   inv.innerHTML = "";
 
   if (player.inventory.length === 0) {
     inv.innerText = "Inventar leer";
-  } else {
-    player.inventory.forEach(item => {
-      const div = document.createElement("div");
-      div.className = "item";
-      div.innerHTML = `<b>${item.name}</b><br>${item.quality}`;
-      div.onclick = e => {
-        e.stopPropagation();
-        alert(`${item.name}\nQualität: ${item.quality}`);
-      };
-      inv.appendChild(div);
-    });
+    return;
   }
+
+  player.inventory.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML =
+      `<b>${item.name}</b><br>
+       ${item.quality} | ${item.slot}<br>
+       Klasse: ${item.classReq}`;
+    div.onclick = () => {
+      alert(
+        `Item: ${item.name}\n` +
+        `Qualität: ${item.quality}\n` +
+        `Slot: ${item.slot}\n` +
+        `Klasse: ${item.classReq}`
+      );
+    };
+    inv.appendChild(div);
+  });
 }
 
 updateUI();
