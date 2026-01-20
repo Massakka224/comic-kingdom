@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 20.1</title>
+<title>Comic Kingdom – Version 20</title>
 
 <style>
 body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:80px}
@@ -12,14 +12,13 @@ nav button{flex:1;padding:10px}
 .section{display:none;padding:15px}
 .section.active{display:block}
 .box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
-.item{border:1px solid #ccc;padding:10px;margin:5px 0}
+.item{border:1px solid #ccc;padding:10px;margin:5px 0;border-radius:8px}
 .empty{color:#777;font-style:italic}
+
 .bar{background:#ddd;border-radius:8px;overflow:hidden;height:14px;margin-bottom:6px}
 .bar span{display:block;height:100%;background:#4caf50}
 .xp span{background:#2196f3}
-.log{font-size:13px;color:#333;margin-top:5px}
 
-/* NOTIFICATIONS */
 #notifyBox{
  position:fixed;top:90px;right:10px;z-index:100;
  display:flex;flex-direction:column;gap:8px
@@ -63,9 +62,11 @@ nav button{flex:1;padding:10px}
 <nav id="nav" style="display:none">
  <button onclick="show('status')">Status</button>
  <button onclick="show('quests')">Quests</button>
+ <button onclick="show('city')">Stadt</button>
  <button onclick="logout()">Logout</button>
 </nav>
 
+<!-- STATUS -->
 <div id="status" class="section">
  <div class="box">
   <p><b id="uiName"></b> – Level <b id="uiLevel"></b></p>
@@ -79,11 +80,11 @@ nav button{flex:1;padding:10px}
   <p>🟡 Gold: <b id="uiGold"></b></p>
   <p>🍫 Schokolade: <b id="uiChoco"></b></p>
 
-  <button onclick="useChocolate()">🍫 benutzen</button>
-  <div class="log" id="statusLog"></div>
+  <button onclick="useChocolate()">🍫 benutzen (voll heilen)</button>
  </div>
 </div>
 
+<!-- QUESTS -->
 <div id="quests" class="section">
  <div class="box">
   <h3>Aktive Quest</h3>
@@ -93,8 +94,25 @@ nav button{flex:1;padding:10px}
  </div>
 </div>
 
+<!-- CITY -->
+<div id="city" class="section">
+ <div class="box">
+  <h3>🏘 Stadt</h3>
+
+  <div class="item">
+   <b>🏪 Markt</b><br>
+   <button onclick="buyChocolate()">🍫 Schokolade kaufen (20 Gold)</button>
+  </div>
+
+  <div class="item">
+   <b>🏥 Heiler</b><br>
+   <button onclick="healAtHealer()">❤️ Heilen (10 Gold)</button>
+  </div>
+ </div>
+</div>
+
 <script>
-const SAVE_KEY="ck_v20_1";
+const SAVE_KEY="ck_v20_final";
 let chars=JSON.parse(localStorage.getItem(SAVE_KEY))||[];
 let player=null;
 
@@ -112,26 +130,22 @@ function notify(t){
 }
 
 function generateQuest(){
- const difficulty=["leicht","normal","schwer"][Math.floor(Math.random()*3)];
- let duration=4000, reward=1;
- if(difficulty==="schwer"){duration=7000;reward=1.5}
+ const difficulty=["leicht","normal","schwer"][rand(["a","b","c"])];
+ let duration=4000,reward=1;
  if(difficulty==="leicht"){duration=3000;reward=0.8}
-
- if(player.class==="Kundschafter") duration*=0.9;
+ if(difficulty==="schwer"){duration=7000;reward=1.5}
 
  return{
   name:`${actions[rand(actions)]} ${targets[rand(targets)]}`,
   desc:`${actions[rand(actions)]} ${targets[rand(targets)]} ${places[rand(places)]} (${difficulty})`,
-  duration,
-  reward,
-  special:Math.random()<0.2
+  duration,reward,special:Math.random()<0.2
  };
 }
 
 function createCharacter(){
  const name=newName.value.trim();
  const cls=newClass.value;
- if(name.length<2||!cls) return;
+ if(name.length<2||!cls)return;
 
  const hp={Krieger:120,Magier:90,Kundschafter:100}[cls];
  chars.push({
@@ -142,6 +156,14 @@ function createCharacter(){
  save();renderList();notify("🆕 Charakter erstellt");
 }
 
+function selectChar(id){
+ player=chars.find(c=>c.id===id);
+ nav.style.display="flex";
+ show("status");
+ updateUI();
+ notify(`🎮 ${player.name} spielt`);
+}
+
 function deleteChar(id){
  if(confirm("Charakter löschen?")){
   chars=chars.filter(c=>c.id!==id);
@@ -149,25 +171,23 @@ function deleteChar(id){
  }
 }
 
-function selectChar(id){
- player=chars.find(c=>c.id===id);
- nav.style.display="flex";
- show("status");
- updateUI();
- notify(`🎮 ${player.name} betreten`);
-}
-
 function startQuest(){
- if(player.quest) return;
+ if(player.quest)return;
  const q=generateQuest();
- player.hp=player.hpMax;
  player.quest={...q,end:Date.now()+q.duration};
  notify("🗺 Quest gestartet");
  updateUI();
 }
 
+function cancelQuest(){
+ if(player.quest){
+  player.quest=null;
+  notify("❌ Quest abgebrochen");
+ }
+}
+
 function checkQuest(){
- if(!player?.quest) return;
+ if(!player?.quest)return;
  if(Date.now()>=player.quest.end){
   const q=player.quest;
   player.quest=null;
@@ -175,8 +195,8 @@ function checkQuest(){
   let gold=(20+player.level*5)*q.reward;
   let xp=(40+player.level*10)*q.reward;
 
-  if(player.class==="Krieger") gold*=1.1;
-  if(player.class==="Magier") xp*=1.1;
+  if(player.class==="Krieger")gold*=1.1;
+  if(player.class==="Magier")xp*=1.1;
 
   gold=Math.floor(gold);xp=Math.floor(xp);
 
@@ -185,7 +205,7 @@ function checkQuest(){
 
   if(q.special||Math.random()<0.15){
    player.chocolate++;
-   notify("🍫 Schokolade erhalten!");
+   notify("🍫 Schokolade erhalten");
   }
 
   notify(`✅ Quest abgeschlossen (+${gold} Gold, +${xp} XP)`);
@@ -205,10 +225,26 @@ function gainXP(x){
 }
 
 function useChocolate(){
- if(player.chocolate<=0) return;
+ if(player.chocolate<=0)return;
  player.chocolate--;
  player.hp=player.hpMax;
  notify("❤️ Voll geheilt");
+ updateUI();
+}
+
+function buyChocolate(){
+ if(player.gold<20)return notify("❌ Zu wenig Gold");
+ player.gold-=20;
+ player.chocolate++;
+ notify("🍫 Gekauft");
+ updateUI();
+}
+
+function healAtHealer(){
+ if(player.gold<10)return notify("❌ Zu wenig Gold");
+ player.gold-=10;
+ player.hp=player.hpMax;
+ notify("🏥 Geheilt");
  updateUI();
 }
 
@@ -218,18 +254,17 @@ function show(id){
 }
 
 function updateUI(){
- if(!player) return;
+ if(!player)return;
  uiName.textContent=player.name;
  uiLevel.textContent=player.level;
  uiGold.textContent=player.gold;
  uiChoco.textContent=player.chocolate;
-
- hpBar.style.width=Math.min(100,player.hp/player.hpMax*100)+"%";
+ hpBar.style.width=(player.hp/player.hpMax*100)+"%";
  xpBar.style.width=(player.xp/player.xpMax*100)+"%";
 
  if(player.quest){
-  const rest=Math.max(0,Math.ceil((player.quest.end-Date.now())/1000));
-  questBox.innerHTML=`<b>${player.quest.name}</b><br>${player.quest.desc}<br>⏳ ${rest}s`;
+  const t=Math.ceil((player.quest.end-Date.now())/1000);
+  questBox.innerHTML=`<b>${player.quest.name}</b><br>${player.quest.desc}<br>⏳ ${t}s`;
  }else questBox.innerHTML="<i>Keine aktive Quest</i>";
 
  save();
@@ -240,20 +275,20 @@ function logout(){
  nav.style.display="none";
  show("charSelect");
  renderList();
- notify("👋 Abgemeldet");
+ notify("👋 Logout");
 }
 
 function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(chars));}
 function renderList(){
  charList.innerHTML="";
- if(!chars.length) return charList.innerHTML="<p class='empty'>Keine Charaktere</p>";
+ if(!chars.length)return charList.innerHTML="<p class='empty'>Keine Charaktere</p>";
  chars.forEach(c=>{
   charList.innerHTML+=`
-  <div class="item">
-   <b>${c.name}</b> (${c.class})
-   <button onclick="selectChar('${c.id}')">Spielen</button>
-   <button onclick="deleteChar('${c.id}')">Löschen</button>
-  </div>`;
+   <div class="item">
+    <b>${c.name}</b> (${c.class})<br>
+    <button onclick="selectChar('${c.id}')">Spielen</button>
+    <button onclick="deleteChar('${c.id}')">Löschen</button>
+   </div>`;
  });
 }
 
