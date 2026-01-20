@@ -3,45 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 12.3</title>
+<title>Comic Kingdom – Version 14.0</title>
 
 <style>
-body{
-  font-family:Arial, sans-serif;
-  background:#f2f2f2;
-  margin:0;
-  padding-top:90px;
-}
-nav{
-  position:fixed;
-  top:0;left:0;right:0;
-  background:#fff;
-  padding:10px;
-  display:flex;
-  gap:5px;
-  z-index:100;
-}
+body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:100px}
+nav{position:fixed;top:0;left:0;right:0;background:#fff;padding:10px;display:flex;gap:5px;z-index:100}
 nav button{flex:1;padding:10px;font-size:13px}
 .section{display:none;padding:15px}
 .section.active{display:block}
-.box{
-  background:#fff;
-  padding:15px;
-  border-radius:10px;
-  margin-bottom:15px;
-}
-.item{
-  border:1px solid #ccc;
-  padding:10px;
-  margin:5px 0;
-  cursor:pointer;
-}
-.item.equipped{
-  background:#dff0d8;
-  opacity:0.6;
-  pointer-events:none;
-}
-.empty{color:#888;font-style:italic}
+.box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
+.skill{border:1px solid #ccc;padding:10px;margin:5px 0;position:relative}
+.skill.locked{opacity:.5}
+.skill button{position:absolute;right:10px;top:10px}
+.progress{background:#ddd;height:14px;border-radius:7px;overflow:hidden}
+.bar{background:#4caf50;height:100%;width:0%;transition:.3s}
+.cooldown{color:red;font-size:12px}
 </style>
 </head>
 
@@ -49,10 +25,9 @@ nav button{flex:1;padding:10px;font-size:13px}
 
 <nav>
 <button onclick="show('status')">Status</button>
-<button onclick="show('quests')">Quest</button>
-<button onclick="show('stadt')">Stadt</button>
-<button onclick="show('inventar')">Inventar</button>
-<button onclick="show('ausruestung')">Ausrüstung</button>
+<button onclick="show('skills')">Skills</button>
+<button onclick="show('active')">Aktiv</button>
+<button onclick="show('city')">Stadt</button>
 </nav>
 
 <div id="status" class="section active">
@@ -60,200 +35,195 @@ nav button{flex:1;padding:10px;font-size:13px}
 <h2>Status</h2>
 <p>Klasse: <b id="uiClass"></b></p>
 <p>Level: <b id="uiLevel"></b></p>
+<div class="progress"><div id="xpBar" class="bar"></div></div>
 <p>XP: <b id="uiXP"></b></p>
-<p>Gold: <b id="uiGold"></b></p>
+<p>Skillpunkte: <b id="uiSP"></b></p>
 <p>Angriff: <b id="uiAtk"></b></p>
 <p>Verteidigung: <b id="uiDef"></b></p>
 </div>
 </div>
 
-<div id="quests" class="section">
+<div id="skills" class="section">
 <div class="box">
-<h2>Quest</h2>
-<button onclick="finishQuest()">Quest abschließen</button>
-<p id="questLog"></p>
+<h2>🌳 Skillbäume</h2>
+<div id="skillBox"></div>
 </div>
 </div>
 
-<div id="stadt" class="section">
+<div id="active" class="section">
 <div class="box">
-<h2>Stadt</h2>
-<button onclick="alert('Schmiede kommt in v13')">🏭 Schmiede</button>
-<button onclick="alert('Skillsystem kommt in v13')">🧙 Magierturm</button>
-<button onclick="alert('Shop kommt in v13')">🛒 Händler</button>
+<h2>⚡ Aktive Skills</h2>
+<div id="activeBox"></div>
 </div>
 </div>
 
-<div id="inventar" class="section">
+<div id="city" class="section">
 <div class="box">
-<h2>Inventar</h2>
-<div id="inventoryBox"></div>
-</div>
-</div>
-
-<div id="ausruestung" class="section">
-<div class="box">
-<h2>Ausrüstung</h2>
-<div id="equipBox"></div>
+<h2>🏙️ Stadt</h2>
+<button onclick="finishQuest()">Quest abschließen</button><br><br>
+<button onclick="respec()">Trainer: Skills zurücksetzen</button>
 </div>
 </div>
 
 <script>
-const GAME_VERSION="12.3";
+/* ================= KONFIG ================= */
+const SAVE_KEY="ck_save";
+const SAVE_VERSION=2;
 
-/* ===== SAVE ===== */
-function load(){
-  try{return JSON.parse(localStorage.getItem("ck_save"))||{}}
-  catch{return {}}
-}
-function save(){
-  localStorage.setItem("ck_save",JSON.stringify(player));
-}
+/* ================= LOAD / SAVE ================= */
+function load(){try{return JSON.parse(localStorage.getItem(SAVE_KEY))||{}}catch{return{}}}
+function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(player))}
 
-/* ===== PLAYER ===== */
+/* ================= KLASSEN ================= */
+const classes={
+  Krieger:{atk:3,def:2,skills:["Kampf","Verteidigung"]},
+  Magier:{atk:1,def:1,skills:["Magie"]},
+  Schurke:{atk:2,def:1,skills:["Kampf"]}
+};
+
+/* ================= AKTIVE SKILLS ================= */
+const activeSkills={
+  Krieger:[
+    {id:"schlag",name:"Mächtiger Schlag",cd:10,effect:()=>alert("💥 Extra Schaden!")}
+  ],
+  Magier:[
+    {id:"feuer",name:"Feuerball",cd:12,effect:()=>alert("🔥 Feuerball!")}
+  ],
+  Schurke:[
+    {id:"stich",name:"Hinterhalt",cd:8,effect:()=>alert("🗡️ Kritischer Treffer!")}
+  ]
+};
+
+/* ================= SKILLS ================= */
+const skillData={
+  Kampf:[
+    {id:"kraft",name:"Kraft",max:5,atk:2},
+    {id:"waffen",name:"Waffenmeister",max:3,atkMul:.1,req:{kraft:3}}
+  ],
+  Verteidigung:[
+    {id:"zaehigkeit",name:"Zähigkeit",max:5,def:2},
+    {id:"eisenhaut",name:"Eisenhaut",max:3,defMul:.1,req:{zaehigkeit:3}}
+  ],
+  Magie:[
+    {id:"fokus",name:"Fokus",max:3,xp:.05},
+    {id:"arkane",name:"Arkane Macht",max:5,atk:3,req:{fokus:2}}
+  ]
+};
+const allSkills=Object.values(skillData).flat();
+
+/* ================= PLAYER ================= */
 const data=load();
 const player={
-  version:GAME_VERSION,
+  version:SAVE_VERSION,
   class:data.class||"Krieger",
   level:data.level||1,
   xp:data.xp||0,
   xpMax:data.xpMax||100,
-  gold:data.gold||50,
-  inventory:Array.isArray(data.inventory)?data.inventory:[],
-  equipped:data.equipped||{Waffe:null,Helm:null,Rüstung:null,Ring:null},
-  nextId:Number.isInteger(data.nextId)?data.nextId:Date.now()
+  skillPoints:data.skillPoints||0,
+  skills:{},
+  cooldowns:data.cooldowns||{}
 };
+allSkills.forEach(s=>player.skills[s.id]=Math.min(data.skills?.[s.id]||0,s.max));
 
-/* ===== DATA ===== */
-const baseStats={
-  Krieger:{atk:5,def:5},
-  Magier:{atk:7,def:2},
-  Kundschafter:{atk:6,def:3},
-  Nekromant:{atk:6,def:4}
-};
-
-const itemPools={
-  Waffe:["Schwert der Ehre","Axt des Zorns","Stab der Weisheit","Dolch der Schatten"],
-  Helm:["Helm des Mutes","Kapuzenhelm","Knochenkrone"],
-  Rüstung:["Plattenrüstung","Magierrobe","Lederrüstung"],
-  Ring:["Ring der Kraft","Ring der Abwehr"]
-};
-
-const qualities=[
-  {n:"Gewöhnlich",min:1,atk:1,def:1,w:50},
-  {n:"Ungewöhnlich",min:10,atk:2,def:2,w:25},
-  {n:"Selten",min:20,atk:3,def:3,w:15},
-  {n:"Episch",min:40,atk:5,def:5,w:7},
-  {n:"Legendär",min:70,atk:8,def:8,w:3}
-];
-
-const slots=["Waffe","Helm","Rüstung","Ring"];
-
-/* ===== NAV ===== */
+/* ================= GAME ================= */
 function show(id){
   document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-/* ===== ITEM ===== */
-function weightedQuality(){
-  const pool=[];
-  qualities.filter(q=>player.level>=q.min)
-    .forEach(q=>{for(let i=0;i<q.w;i++)pool.push(q)});
-  return pool[Math.floor(Math.random()*pool.length)];
-}
-
-function generateItem(){
-  const q=weightedQuality();
-  const slot=slots[Math.floor(Math.random()*slots.length)];
-  return{
-    id:player.nextId++,
-    name:itemPools[slot][Math.floor(Math.random()*itemPools[slot].length)],
-    quality:q.n,
-    atk:q.atk,
-    def:q.def,
-    slot
-  };
-}
-
-/* ===== QUEST ===== */
 function finishQuest(){
-  player.xp+=40;
-  player.gold+=20;
+  let xp=40*(1+(player.skills.fokus||0)*.05);
+  player.xp+=Math.floor(xp);
   while(player.xp>=player.xpMax){
     player.xp-=player.xpMax;
     player.level++;
+    player.skillPoints++;
     player.xpMax=Math.floor(player.xpMax*1.25);
   }
-  const it=generateItem();
-  player.inventory.push(it);
-  questLog.innerHTML=`+40 XP<br>+20 Gold<br>Beute: <b>${it.name}</b> (${it.quality})`;
   save();updateUI();
 }
 
-/* ===== EQUIP ===== */
-function equipItem(id){
-  const idx=player.inventory.findIndex(i=>i.id===id);
-  if(idx===-1)return;
-  const it=player.inventory[idx];
-  if(player.equipped[it.slot]){
-    if(!confirm("Ausrüstung ersetzen?"))return;
-    player.inventory.push(player.equipped[it.slot]);
-  }
-  player.inventory.splice(idx,1);
-  player.equipped[it.slot]=it;
+function respec(){
+  let total=0;
+  for(let k in player.skills){total+=player.skills[k];player.skills[k]=0}
+  player.skillPoints+=total;
   save();updateUI();
 }
 
-function unequip(slot){
-  if(player.equipped[slot]){
-    player.inventory.push(player.equipped[slot]);
-    player.equipped[slot]=null;
-    save();updateUI();
-  }
-}
-
-/* ===== UI ===== */
+/* ================= STATS ================= */
 function calcStats(){
-  const base=baseStats[player.class]||{atk:1,def:1};
-  let atk=base.atk+player.level;
-  let def=base.def+player.level;
-  Object.values(player.equipped).forEach(i=>{
-    if(i){atk+=i.atk;def+=i.def}
+  let atk=5+player.level+classes[player.class].atk;
+  let def=5+player.level+classes[player.class].def;
+  allSkills.forEach(s=>{
+    const lvl=player.skills[s.id];
+    if(s.atk) atk+=s.atk*lvl;
+    if(s.def) def+=s.def*lvl;
+    if(s.atkMul) atk*=1+s.atkMul*lvl;
+    if(s.defMul) def*=1+s.defMul*lvl;
   });
-  return{atk,def};
+  return{atk:Math.floor(atk),def:Math.floor(def)};
 }
 
+/* ================= RENDER ================= */
+function renderSkills(){
+  skillBox.innerHTML="";
+  for(const tree in skillData){
+    if(!classes[player.class].skills.includes(tree)) continue;
+    skillBox.innerHTML+=`<h3>${tree}</h3>`;
+    skillData[tree].forEach(s=>{
+      const lvl=player.skills[s.id];
+      skillBox.innerHTML+=`
+      <div class="skill">
+        <b>${s.name}</b> (${lvl}/${s.max})
+        <button ${lvl>=s.max||player.skillPoints<=0?"disabled":""}
+        onclick="player.skills['${s.id}']++;player.skillPoints--;save();updateUI()">+</button>
+      </div>`;
+    });
+  }
+}
+
+function renderActive(){
+  activeBox.innerHTML="";
+  activeSkills[player.class].forEach(s=>{
+    const cd=player.cooldowns[s.id]||0;
+    activeBox.innerHTML+=`
+    <div class="skill">
+      <b>${s.name}</b><br>
+      ${cd>0?`<span class="cooldown">Cooldown: ${cd}s</span>`:
+      `<button onclick="useActive('${s.id}')">Benutzen</button>`}
+    </div>`;
+  });
+}
+
+function useActive(id){
+  const skill=activeSkills[player.class].find(s=>s.id===id);
+  if(!skill) return;
+  skill.effect();
+  player.cooldowns[id]=skill.cd;
+  save();updateUI();
+}
+
+/* ================= TICK ================= */
+setInterval(()=>{
+  for(let k in player.cooldowns){
+    if(player.cooldowns[k]>0) player.cooldowns[k]--;
+  }
+  updateUI();
+},1000);
+
+/* ================= UI ================= */
 function updateUI(){
   const s=calcStats();
   uiClass.textContent=player.class;
   uiLevel.textContent=player.level;
   uiXP.textContent=`${player.xp}/${player.xpMax}`;
-  uiGold.textContent=player.gold;
+  uiSP.textContent=player.skillPoints;
   uiAtk.textContent=s.atk;
   uiDef.textContent=s.def;
-
-  inventoryBox.innerHTML="";
-  if(player.inventory.length===0){
-    inventoryBox.innerHTML='<p class="empty">Inventar leer</p>';
-  }else{
-    player.inventory.forEach(i=>{
-      const d=document.createElement("div");
-      d.className="item";
-      d.innerHTML=`<b>${i.name}</b> (${i.quality})<br>${i.slot}`;
-      d.onclick=()=>equipItem(i.id);
-      inventoryBox.appendChild(d);
-    });
-  }
-
-  equipBox.innerHTML="";
-  slots.forEach(s=>{
-    equipBox.innerHTML+=`<p>${s}: ${player.equipped[s]?.name||"leer"}
-    ${player.equipped[s]?` <button onclick="unequip('${s}')">Ablegen</button>`:""}
-    </p>`;
-  });
+  xpBar.style.width=(player.xp/player.xpMax*100)+"%";
+  renderSkills();
+  renderActive();
 }
-
 updateUI();
 </script>
 </body>
