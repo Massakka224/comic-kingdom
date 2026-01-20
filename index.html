@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 20</title>
+<title>Comic Kingdom – Version 20.1</title>
 
 <style>
 body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:80px}
@@ -41,7 +41,7 @@ nav button{flex:1;padding:10px}
 
 <div id="notifyBox"></div>
 
-<!-- CHARACTER SELECT -->
+<!-- CHAR SELECT -->
 <div id="charSelect" class="section active">
  <div class="box">
   <h2>Charaktere</h2>
@@ -71,16 +71,16 @@ nav button{flex:1;padding:10px}
  <div class="box">
   <p><b id="uiName"></b> – Level <b id="uiLevel"></b></p>
 
-  <p>❤️ HP: <span id="uiHPText"></span></p>
+  HP
   <div class="bar"><span id="hpBar"></span></div>
 
-  <p>⭐ XP: <span id="uiXPText"></span></p>
+  XP
   <div class="bar xp"><span id="xpBar"></span></div>
 
   <p>🟡 Gold: <b id="uiGold"></b></p>
   <p>🍫 Schokolade: <b id="uiChoco"></b></p>
 
-  <button onclick="useChocolate()">🍫 benutzen (voll heilen)</button>
+  <button onclick="useChocolate()">🍫 benutzen</button>
  </div>
 </div>
 
@@ -106,13 +106,13 @@ nav button{flex:1;padding:10px}
 
   <div class="item">
    <b>🏥 Heiler</b><br>
-   <button onclick="healAtHealer()">❤️ Heilen (10 Gold)</button>
+   <button onclick="heal()">❤️ Heilen (10 Gold)</button>
   </div>
  </div>
 </div>
 
 <script>
-const SAVE_KEY="ck_v20_fixed_final";
+const SAVE_KEY="ck_v20_1";
 let chars=JSON.parse(localStorage.getItem(SAVE_KEY))||[];
 let player=null;
 
@@ -146,19 +146,28 @@ function generateQuest(){
 function createCharacter(){
  const name=newName.value.trim();
  const cls=newClass.value;
- if(name.length<2||!cls)return alert("Name & Klasse wählen");
+ if(name.length<2||!cls)return;
 
- const hp={Krieger:120,Magier:90,Kundschafter:100}[cls];
+ const baseHP={Krieger:120,Magier:90,Kundschafter:100}[cls];
  chars.push({
-  id:crypto.randomUUID(),name,class:cls,
-  level:1,xp:0,xpMax:100,
-  hp,hpMax:hp,gold:50,chocolate:0,quest:null
+  id:crypto.randomUUID(),
+  name,
+  class:cls,
+  level:1,
+  xp:0,
+  xpMax:100,
+  hp:baseHP,
+  hpMax:baseHP,
+  gold:50,
+  chocolate:0,
+  quest:null
  });
  save();renderList();notify("🆕 Charakter erstellt");
 }
 
 function selectChar(id){
  player=chars.find(c=>c.id===id);
+ player.hp=Math.min(player.hp,player.hpMax);
  nav.style.display="flex";
  show("status");
  updateUI();
@@ -177,7 +186,6 @@ function cancelQuest(){
  if(player.quest){
   player.quest=null;
   notify("❌ Quest abgebrochen");
-  updateUI();
  }
 }
 
@@ -187,19 +195,22 @@ function checkQuest(){
   const q=player.quest;
   player.quest=null;
 
-  let gold=Math.floor((20+player.level*5)*q.reward);
-  let xp=Math.floor((40+player.level*10)*q.reward);
+  let gold=(20+player.level*5)*q.reward;
+  let xp=(40+player.level*10)*q.reward;
+
+  if(player.class==="Krieger")gold*=1.1;
+  if(player.class==="Magier")xp*=1.1;
+
+  gold=Math.floor(gold);xp=Math.floor(xp);
 
   player.gold+=gold;
   gainXP(xp);
 
-  if(q.special||Math.random()<0.15){
+  if(q.special){
    player.chocolate++;
    notify("🍫 Schokolade erhalten");
   }
-
   notify(`✅ Quest abgeschlossen (+${gold} Gold, +${xp} XP)`);
-  updateUI();
  }
 }
 
@@ -231,7 +242,7 @@ function buyChocolate(){
  updateUI();
 }
 
-function healAtHealer(){
+function heal(){
  if(player.gold<10)return notify("❌ Zu wenig Gold");
  player.gold-=10;
  player.hp=player.hpMax;
@@ -242,6 +253,7 @@ function healAtHealer(){
 function show(id){
  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
  document.getElementById(id).classList.add("active");
+ updateUI();
 }
 
 function updateUI(){
@@ -250,16 +262,13 @@ function updateUI(){
  uiLevel.textContent=player.level;
  uiGold.textContent=player.gold;
  uiChoco.textContent=player.chocolate;
+ hpBar.style.width=(player.hp/player.hpMax*100)+"%";
+ xpBar.style.width=(player.xp/player.xpMax*100)+"%";
 
- uiHPText.textContent=`${player.hp} / ${player.hpMax}`;
- uiXPText.textContent=`${player.xp} / ${player.xpMax}`;
-
- hpBar.style.width=(player.hp/Math.max(1,player.hpMax)*100)+"%";
- xpBar.style.width=(player.xp/Math.max(1,player.xpMax)*100)+"%";
-
- questBox.innerHTML=player.quest
-  ? `<b>${player.quest.name}</b><br>${player.quest.desc}`
-  : "<i>Keine aktive Quest</i>";
+ if(player.quest){
+  const t=Math.max(0,Math.ceil((player.quest.end-Date.now())/1000));
+  questBox.innerHTML=`<b>${player.quest.name}</b><br>${player.quest.desc}<br>⏳ ${t}s`;
+ }else questBox.innerHTML="<i>Keine aktive Quest</i>";
 
  save();
 }
@@ -281,7 +290,6 @@ function renderList(){
    <div class="item">
     <b>${c.name}</b> (${c.class})<br>
     <button onclick="selectChar('${c.id}')">Spielen</button>
-    <button onclick="deleteChar('${c.id}')">Löschen</button>
    </div>`;
  });
 }
