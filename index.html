@@ -2,673 +2,98 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comic Kingdom – Version 19.1</title>
+<title>Comic Kingdom – Clean Version</title>
 <style>
-  body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:90px}
-  nav{position:fixed;top:0;left:0;right:0;background:#fff;padding:10px;display:flex;gap:5px;z-index:100}
-  nav button{flex:1;padding:10px;font-size:13px}
-  .section{display:none;padding:15px}
-  .section.active{display:block}
-  .box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
-  .item{border:1px solid #ccc;padding:10px;margin:5px 0;cursor:pointer}
-  .empty{color:#888;font-style:italic}
-  .skill{border:1px solid #ccc;padding:10px;margin:5px 0;position:relative}
-  .skill button{position:absolute;right:10px;top:10px}
-  .skill.locked{opacity:0.5}
-  .skill button:disabled{opacity:0.4}
-  .equipSlot{border:1px dashed #999;padding:10px;margin:5px 0;}
-  .equipSlot b{display:block;}
-  .log{border:1px solid #ccc;padding:10px;margin:10px 0;background:#fafafa;height:120px;overflow:auto}
-  .field{border:1px solid #ccc;padding:10px;margin:5px 0;}
+body{font-family:Arial;background:#eee;margin:0;padding:20px}
+.box{background:#fff;padding:15px;border-radius:10px;max-width:400px;margin:auto}
+.item{border:1px solid #ccc;padding:10px;margin:5px 0}
+button{margin-right:5px}
+.empty{color:#888}
 </style>
 </head>
-
 <body>
 
-<!-- CHARACTER SELECTION -->
-<div id="charSelect" class="section active">
-  <div class="box">
-    <h2>Charakter auswählen</h2>
-    <div id="charList"></div>
+<div class="box">
+  <h2>Charaktere</h2>
+  <div id="charList"></div>
 
-    <h3>Neuen Charakter erstellen</h3>
-    <input id="newName" placeholder="Name" />
-    <select id="newClass">
-      <option value="Krieger">Krieger</option>
-      <option value="Magier">Magier</option>
-      <option value="Kundschafter">Kundschafter</option>
-      <option value="Nekromant">Nekromant</option>
-    </select>
-    <button onclick="createCharacter()">Erstellen</button>
-  </div>
-</div>
-
-<!-- GAME UI -->
-<nav id="gameNav" style="display:none;">
-  <button onclick="show('status')">Status</button>
-  <button onclick="show('skills')">Skills</button>
-  <button onclick="show('quests')">Quest</button>
-  <button onclick="show('inventar')">Inventar</button>
-  <button onclick="show('stadt')">Stadt</button>
-  <button onclick="show('farm')">Farm</button>
-  <button onclick="logout()">Logout</button>
-</nav>
-
-<!-- STATUS -->
-<div id="status" class="section">
-  <div class="box">
-    <h2>Status</h2>
-    <p>Klasse: <b id="uiClass"></b></p>
-    <p>Level: <b id="uiLevel"></b></p>
-    <p>XP: <b id="uiXP"></b></p>
-    <p>HP: <b id="uiHP"></b></p>
-    <p>🟡 Gold: <b id="uiGold"></b></p>
-    <p>🍫 Schokolade: <b id="uiChocolate"></b></p>
-    <p>⚡ Energie: <b id="uiEnergy"></b></p>
-    <p>Angriff: <b id="uiAtk"></b></p>
-    <p>Verteidigung: <b id="uiDef"></b></p>
-  </div>
-
-  <div class="box">
-    <h3>Ausrüstung</h3>
-    <div id="equipSlots"></div>
-  </div>
-
-  <div class="box">
-    <h3>Nachrichten</h3>
-    <div id="msgLog" class="log"></div>
-  </div>
-</div>
-
-<!-- SKILLS -->
-<div id="skills" class="section">
-  <div class="box">
-    <h2>🌳 Skillbäume</h2>
-    <p>Skillpunkte: <b id="uiSkillPoints"></b></p>
-    <div id="skillBox"></div>
-  </div>
-</div>
-
-<!-- QUESTS -->
-<div id="quests" class="section">
-  <div class="box">
-    <button onclick="finishQuest()">Quest abschließen</button>
-    <p id="questLog"></p>
-  </div>
-</div>
-
-<!-- INVENTAR -->
-<div id="inventar" class="section">
-  <div class="box">
-    <h2>Inventar</h2>
-    <div id="inventoryBox"></div>
-  </div>
-</div>
-
-<!-- STADT -->
-<div id="stadt" class="section">
-  <div class="box">
-    <h2>Stadt</h2>
-    <button onclick="openBuilding('taverne')">🏰 Taverne</button>
-    <button onclick="openBuilding('schmiede')">🛠️ Schmiede</button>
-    <button onclick="openBuilding('arena')">⚔️ Arena</button>
-    <button onclick="openBuilding('shop')">🛒 Markt</button>
-    <button onclick="openBuilding('alchemist')">🧪 Alchemist</button>
-  </div>
-  <div id="buildingBox"></div>
-</div>
-
-<!-- FARM -->
-<div id="farm" class="section">
-  <div class="box">
-    <h2>🌾 Farm</h2>
-    <p>Holz: <b id="uiWood"></b> | Stein: <b id="uiStone"></b> | Nahrung: <b id="uiFood"></b></p>
-    <button onclick="collectResources()">Ressourcen sammeln</button>
-    <button onclick="buildFarm()">Farm bauen (10 Holz + 10 Stein)</button>
-    <p id="farmLog"></p>
-  </div>
-  <div class="box">
-    <h3>Felder</h3>
-    <div id="fieldsBox"></div>
-  </div>
+  <h3>Neuer Charakter</h3>
+  <input id="name" placeholder="Name">
+  <button onclick="createChar()">Erstellen</button>
 </div>
 
 <script>
-/* ================= SAVE ================= */
-const SAVE_VERSION = 1;
-function loadAll(){
-  try { return JSON.parse(localStorage.getItem("ck_chars")) || []; }
-  catch { return []; }
-}
-function saveAll(chars){
-  localStorage.setItem("ck_chars", JSON.stringify(chars));
-}
+/* ===== STORAGE ===== */
+const KEY = "ck_chars_clean";
 
-/* ================= PLAYER ================= */
-let chars = loadAll();
-let player = null;
-let activeId = null;
+/* ===== LOAD ===== */
+function loadChars(){
+  let chars = JSON.parse(localStorage.getItem(KEY)) || [];
 
-/* ================= SKILLDATA ================= */
-const skillData={
-  Kampf:[
-    {id:"kraft",name:"Kraft",max:5,desc:"+2 Angriff",req:null},
-    {id:"waffen",name:"Waffenmeister",max:3,desc:"+10% Angriff",req:{kraft:3}}
-  ],
-  Verteidigung:[
-    {id:"zaehigkeit",name:"Zähigkeit",max:5,desc:"+2 Verteidigung",req:null},
-    {id:"eisenhaut",name:"Eisenhaut",max:3,desc:"+10% Verteidigung",req:{zaehigkeit:3}}
-  ],
-  Magie:[
-    {id:"fokus",name:"Fokus",max:3,desc:"+5% XP",req:null},
-    {id:"arkane",name:"Arkane Macht",max:5,desc:"+3 Angriff",req:{fokus:2}}
-  ]
-};
-const allSkills = Object.values(skillData).flat();
+  // 🔥 KRATOS WIRD HIER GARANTIERT ENTFERNT
+  chars = chars.filter(c => c.name !== "Kratos");
 
-/* ================= NAV ================= */
-function show(id){
-  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
+  localStorage.setItem(KEY, JSON.stringify(chars));
+  return chars;
 }
 
-/* ================= CHARACTER SYSTEM ================= */
-function renderCharList(){
-  const list = document.getElementById("charList");
-  list.innerHTML = "";
-  if(chars.length===0){
-    list.innerHTML = "<p class='empty'>Keine Charaktere vorhanden.</p>";
+let chars = loadChars();
+
+/* ===== RENDER ===== */
+function render(){
+  const box = document.getElementById("charList");
+  box.innerHTML = "";
+
+  if(chars.length === 0){
+    box.innerHTML = "<p class='empty'>Keine Charaktere vorhanden</p>";
     return;
   }
+
   chars.forEach(c=>{
-    const d = document.createElement("div");
-    d.className = "item";
-    d.innerHTML = `
-      <b>${c.name}</b> (${c.class}) - Level ${c.level}
-      <br>
-      <button onclick="selectChar('${c.id}')">Auswählen</button>
-      <button onclick="deleteChar('${c.id}')">Löschen</button>
-    `;
-    list.appendChild(d);
-  });
-}
-
-function createCharacter(){
-  const name = document.getElementById("newName").value.trim();
-  const cls  = document.getElementById("newClass").value;
-
-  if(name.length<2){
-    alert("Name muss mindestens 2 Zeichen haben.");
-    return;
-  }
-
-  const newChar = {
-    id: Date.now().toString(),
-    name,
-    class: cls,
-    level: 1,
-    xp: 0,
-    xpMax: 100,
-    hp: 100,
-    hpMax: 100,
-    gold: 50,
-    chocolate: 0,
-    skillPoints: 0,
-    skills: {},
-    inventory: [],
-    equip: {Waffe:null,Helm:null,Rüstung:null,Ring:null},
-    wood: 0,
-    stone: 0,
-    food: 0,
-    farmBuilt: false,
-    energy: 20,
-    energyMax: 20,
-    lastSaved: Date.now(),
-    fields: [
-      {id:1, planted:false, readyAt:0},
-      {id:2, planted:false, readyAt:0},
-      {id:3, planted:false, readyAt:0}
-    ]
-  };
-
-  allSkills.forEach(s=> newChar.skills[s.id]=0);
-
-  chars.push(newChar);
-  saveAll(chars);
-  renderCharList();
-}
-
-function deleteChar(id){
-  if(!confirm("Charakter wirklich löschen?")) return;
-  chars = chars.filter(c=>c.id!==id);
-  saveAll(chars);
-  renderCharList();
-}
-
-function selectChar(id){
-  player = JSON.parse(JSON.stringify(chars.find(c=>c.id===id)));
-  activeId = id;
-  document.getElementById("gameNav").style.display = "flex";
-
-  // Offline processing
-  processOffline();
-
-  show("status");
-  updateUI();
-}
-
-function logout(){
-  player = null;
-  activeId = null;
-  document.getElementById("gameNav").style.display = "none";
-  show("charSelect");
-}
-
-/* ================= OFFLINE PROCESSING ================= */
-function processOffline(){
-  if(!player) return;
-
-  const now = Date.now();
-  const diff = now - (player.lastSaved || now);
-
-  // max 24h offline
-  const maxOffline = 24 * 60 * 60 * 1000;
-  const actualDiff = Math.min(diff, maxOffline);
-
-  // Energy regen: 1 energy per 2 minutes
-  const energyRegenMs = 2 * 60 * 1000;
-  const energyGain = Math.floor(actualDiff / energyRegenMs);
-  player.energy = Math.min(player.energyMax, player.energy + energyGain);
-
-  player.lastSaved = now;
-}
-
-/* ================= QUESTS ================= */
-function finishQuest(){
-  if(player.energy <= 0){
-    addMsg("Keine Energie mehr! Warte oder kaufe Energie.");
-    return;
-  }
-
-  player.energy--;
-  let xpGain = 40 * (1 + player.skills.fokus * 0.05);
-  player.xp += Math.floor(xpGain);
-  player.gold += 20;
-
-  let choc = Math.random()<0.1 ? 1 : 0;
-  player.chocolate += choc;
-
-  // Loot with inventory limit
-  let loot = "Kein Loot.";
-  if(player.inventory.length < 30 && Math.random() < 0.4){
-    const it = generateItem();
-    player.inventory.push(it);
-    loot = `Loot: ${it.name} (${it.quality})`;
-  } else if(player.inventory.length >= 30){
-    loot = "Inventar voll – kein Loot.";
-  }
-
-  while(player.xp >= player.xpMax){
-    player.xp -= player.xpMax;
-    player.level++;
-    player.skillPoints++;
-    player.hpMax += 20;
-    player.hp = player.hpMax;
-    player.xpMax = Math.floor(player.xpMax * 1.25);
-  }
-
-  document.getElementById("questLog").innerHTML =
-    `+${Math.floor(xpGain)} XP<br>+20 Gold<br>+${choc} Schokolade<br>${loot}`;
-
-  addMsg(`Quest beendet: +${Math.floor(xpGain)} XP, +20 Gold`);
-
-  save();
-  updateUI();
-}
-
-/* ================= ITEM SYSTEM ================= */
-const slots = ["Waffe","Helm","Rüstung","Ring"];
-const qualities = [
-  {n:"Gewöhnlich",atk:1,def:1,w:50},
-  {n:"Ungewöhnlich",atk:2,def:2,w:25},
-  {n:"Selten",atk:3,def:3,w:15},
-  {n:"Episch",atk:5,def:5,w:7},
-  {n:"Legendär",atk:8,def:8,w:3}
-];
-
-const itemPools = {
-  Waffe:["Schwert","Axt","Stab","Dolch","Seelensichel"],
-  Helm:["Helm","Kapuzenhelm","Knochenkrone"],
-  Rüstung:["Plattenrüstung","Magierrobe","Lederrüstung"],
-  Ring:["Ring der Kraft","Ring der Abwehr"]
-};
-
-function weightedQuality(){
-  const pool=[];
-  qualities.forEach(q=>{
-    for(let i=0;i<q.w;i++) pool.push(q);
-  });
-  return pool[Math.floor(Math.random()*pool.length)];
-}
-
-function generateItem(){
-  const q=weightedQuality();
-  const slot=slots[Math.floor(Math.random()*slots.length)];
-  const names=itemPools[slot];
-  return {
-    id: Date.now().toString() + Math.random(),
-    name: names[Math.floor(Math.random()*names.length)],
-    quality: q.n,
-    atk: q.atk + Math.floor(player.level/5),
-    def: q.def + Math.floor(player.level/5),
-    slot,
-    levelReq: Math.max(1, Math.floor(Math.random()*player.level) + 1)
-  };
-}
-
-/* ================= STATS ================= */
-function calcStats(){
-  let atk = 5 + player.level;
-  let def = 5 + player.level;
-
-  atk += player.skills.kraft * 2;
-  atk += player.skills.arkane * 3;
-  def += player.skills.zaehigkeit * 2;
-
-  atk *= 1 + player.skills.waffen * 0.1;
-  def *= 1 + player.skills.eisenhaut * 0.1;
-
-  // add equip bonuses
-  for(const s of slots){
-    const it = player.equip[s];
-    if(it){
-      atk += it.atk;
-      def += it.def;
-    }
-  }
-
-  return {atk: Math.floor(atk), def: Math.floor(def)};
-}
-
-/* ================= SKILLS ================= */
-function canLearn(skill){
-  if(player.skillPoints<=0) return false;
-  if(player.skills[skill.id]>=skill.max) return false;
-  if(!skill.req) return true;
-
-  const key = Object.keys(skill.req)[0];
-  return player.skills[key] >= skill.req[key];
-}
-
-function learnSkill(id){
-  const skill = allSkills.find(s=>s.id===id);
-  if(!skill || !canLearn(skill)) return;
-  player.skills[id]++;
-  player.skillPoints--;
-  save();
-  updateUI();
-  addMsg(`Skill gelernt: ${skill.name}`);
-}
-
-function renderSkills(){
-  skillBox.innerHTML="";
-  for(const tree in skillData){
-    skillBox.innerHTML += `<h3>${tree}</h3>`;
-    skillData[tree].forEach(s=>{
-      const lvl = player.skills[s.id];
-      const locked = !canLearn(s);
-      skillBox.innerHTML += `
-        <div class="skill ${locked && lvl<s.max ? "locked":""}">
-          <b>${s.name}</b> (${lvl}/${s.max})<br>
-          ${s.desc}<br>
-          ${s.req ? `<small>Voraussetzung: ${Object.keys(s.req)[0]} ${Object.values(s.req)[0]}</small>` : ""}
-          <button ${!canLearn(s) ? "disabled":""} onclick="learnSkill('${s.id}')">+</button>
-        </div>`;
-    });
-  }
-}
-
-/* ================= INVENTAR UI ================= */
-function updateInventory(){
-  const inv = document.getElementById("inventoryBox");
-  inv.innerHTML="";
-  if(player.inventory.length===0){
-    inv.innerHTML="<p class='empty'>Inventar leer</p>";
-    return;
-  }
-  player.inventory.forEach(it=>{
-    const d=document.createElement("div");
-    d.className="item";
-    d.innerHTML = `<b>${it.name}</b> (${it.quality})<br>${it.slot} | Level ${it.levelReq}`;
-    d.onclick = ()=> showItem(it.id);
-    inv.appendChild(d);
-  });
-}
-
-function showItem(id){
-  const it = player.inventory.find(x=>x.id===id);
-  if(!it) return;
-
-  let canEquip = player.level >= it.levelReq;
-  let action = canEquip ? "Ausrüsten" : "Nicht levelbar";
-
-  if(confirm(
-    `Item: ${it.name}\nQualität: ${it.quality}\nSlot: ${it.slot}\nAngriff: ${it.atk}\nVerteidigung: ${it.def}\nLevelanforderung: ${it.levelReq}\n\n${canEquip ? "Willst du es ausrüsten?" : "Du bist zu niedrig level."}`
-  )){
-    if(canEquip){
-      equipItem(it.id);
-    }
-  }
-}
-
-/* ================= EQUIP ================= */
-function equipItem(id){
-  const it = player.inventory.find(x=>x.id===id);
-  if(!it) return;
-
-  if(player.level < it.levelReq){
-    alert("Level zu niedrig.");
-    return;
-  }
-
-  const slot = it.slot;
-  const old = player.equip[slot];
-  player.equip[slot] = it;
-
-  // remove from inventory
-  player.inventory = player.inventory.filter(x=>x.id!==id);
-
-  // old item goes zurück
-  if(old) player.inventory.push(old);
-
-  save();
-  updateUI();
-}
-
-/* ================= EQUIP UI ================= */
-function renderEquip(){
-  const box = document.getElementById("equipSlots");
-  box.innerHTML = "";
-  for(const s of slots){
-    const it = player.equip[s];
     box.innerHTML += `
-      <div class="equipSlot">
-        <b>${s}</b>
-        ${it ? `${it.name} (${it.quality}) +${it.atk}ATK / +${it.def}DEF` : "<span class='empty'>Leer</span>"}
-      </div>`;
-  }
-}
-
-/* ================= BUILDINGS ================= */
-function openBuilding(id){
-  const box = document.getElementById("buildingBox");
-  box.innerHTML="";
-  if(id==="taverne"){
-    box.innerHTML = "<p>🛡️ Taverne: Quests & Geschichten (in Entwicklung)</p>";
-  }
-  if(id==="schmiede"){
-    box.innerHTML = "<p>🛠️ Schmiede: Item Crafting & Upgrade (in Entwicklung)</p>";
-  }
-  if(id==="arena"){
-    box.innerHTML = "<p>⚔️ Arena: PvP (in Entwicklung)</p>";
-  }
-  if(id==="shop"){
-    box.innerHTML = "<p>🛒 Markt: Kaufen & Verkaufen (in Entwicklung)</p>";
-  }
-  if(id==="alchemist"){
-    box.innerHTML = "<p>🧪 Alchemist: Tränke (in Entwicklung)</p>";
-  }
-}
-
-/* ================= FARM ================= */
-function collectResources(){
-  player.wood += 5;
-  player.stone += 5;
-  player.food += 5;
-  document.getElementById("farmLog").innerText = "+5 Holz, +5 Stein, +5 Nahrung";
-  addMsg("Ressourcen gesammelt: +5 Holz, +5 Stein, +5 Nahrung");
-  save();
-  updateUI();
-}
-
-function buildFarm(){
-  if(player.wood < 10 || player.stone < 10){
-    alert("Nicht genug Ressourcen.");
-    return;
-  }
-  player.wood -= 10;
-  player.stone -= 10;
-  player.farmBuilt = true;
-  document.getElementById("farmLog").innerText = "Farm gebaut! Produktion startet.";
-  addMsg("Farm gebaut! Produktion startet.");
-  save();
-  updateUI();
-}
-
-/* ================= FARM FIELDS ================= */
-function plantField(id){
-  const f = player.fields.find(x=>x.id===id);
-  if(!f) return;
-  if(f.planted){
-    addMsg("Feld ist bereits gepflanzt.");
-    return;
-  }
-  if(player.food < 5){
-    addMsg("Nicht genug Nahrung zum Pflanzen.");
-    return;
-  }
-  player.food -= 5;
-  f.planted = true;
-  f.readyAt = Date.now() + 5 * 60 * 1000; // 5 Minuten
-  addMsg("Feld gepflanzt! Ernte in 5 Minuten.");
-  save();
-  updateUI();
-}
-
-function harvestField(id){
-  const f = player.fields.find(x=>x.id===id);
-  if(!f || !f.planted) return;
-
-  if(Date.now() < f.readyAt){
-    addMsg("Noch nicht reif.");
-    return;
-  }
-  f.planted = false;
-  f.readyAt = 0;
-  player.food += 10 * (player.farmBuilt ? 2 : 1);
-  addMsg("Feld geerntet! +"+(10*(player.farmBuilt?2:1))+" Nahrung");
-  save();
-  updateUI();
-}
-
-function renderFields(){
-  const box = document.getElementById("fieldsBox");
-  box.innerHTML = "";
-  player.fields.forEach(f=>{
-    let status = f.planted ? "Gepflanzt" : "Leer";
-    let btn = f.planted ? "Ernten" : "Pflanzen";
-    let info = "";
-    if(f.planted){
-      const remaining = Math.max(0, f.readyAt - Date.now());
-      if(remaining <= 0){
-        status = "Bereit";
-      } else {
-        const min = Math.floor(remaining / 60000);
-        const sec = Math.floor((remaining % 60000) / 1000);
-        info = ` (noch ${min}m ${sec}s)`;
-      }
-    }
-
-    box.innerHTML += `
-      <div class="field">
-        <b>Feld ${f.id}</b> - ${status}${info}<br>
-        <button onclick="${f.planted ? `harvestField(${f.id})` : `plantField(${f.id})`}">${btn}</button>
+      <div class="item">
+        <b>${c.name}</b> (Level ${c.level})
+        <br>
+        <button onclick="deleteChar('${c.id}')">Löschen</button>
       </div>
     `;
   });
 }
 
-/* ================= MESSAGES ================= */
-function addMsg(txt){
-  const box = document.getElementById("msgLog");
-  const time = new Date().toLocaleTimeString();
-  box.innerHTML = `[${time}] ${txt}<br>` + box.innerHTML;
-}
+/* ===== CREATE ===== */
+function createChar(){
+  const name = document.getElementById("name").value.trim();
+  if(name.length < 2){
+    alert("Name zu kurz");
+    return;
+  }
 
-/* ================= ENERGY REGEN ================= */
-function regenEnergy(){
-  if(!player) return;
-  if(player.energy >= player.energyMax) return;
-
-  player.energy++;
-  save();
-  updateUI();
-}
-
-/* ================= UI ================= */
-function updateUI(){
-  if(!player) return;
-
-  const s = calcStats();
-  uiClass.textContent = player.class;
-  uiLevel.textContent = player.level;
-  uiXP.textContent = `${player.xp}/${player.xpMax}`;
-  uiHP.textContent = `${player.hp}/${player.hpMax}`;
-  uiGold.textContent = player.gold;
-  uiChocolate.textContent = player.chocolate;
-  uiEnergy.textContent = `${player.energy}/${player.energyMax}`;
-  uiAtk.textContent = s.atk;
-  uiDef.textContent = s.def;
-
-  uiWood.textContent = player.wood;
-  uiStone.textContent = player.stone;
-  uiFood.textContent = player.food;
-
-  uiSkillPoints.textContent = player.skillPoints;
-
-  renderSkills();
-  updateInventory();
-  renderEquip();
-  renderFields();
+  chars.push({
+    id: Date.now().toString(),
+    name,
+    level: 1
+  });
 
   save();
+  render();
 }
 
-/* ================= SAVE PLAYER BACK ================= */
+/* ===== DELETE ===== */
+function deleteChar(id){
+  if(!confirm("Charakter wirklich löschen?")) return;
+  chars = chars.filter(c => c.id !== id);
+  save();
+  render();
+}
+
+/* ===== SAVE ===== */
 function save(){
-  if(!player || !activeId) return;
-  const idx = chars.findIndex(c=>c.id===activeId);
-  if(idx === -1) return;
-  player.lastSaved = Date.now();
-  chars[idx] = JSON.parse(JSON.stringify(player));
-  saveAll(chars);
+  localStorage.setItem(KEY, JSON.stringify(chars));
 }
 
-/* ================= INIT ================= */
-renderCharList();
-setInterval(regenEnergy, 2 * 60 * 1000); // alle 2 Minuten Energie
-setInterval(updateUI, 1000); // UI update für Farm countdown
+/* ===== INIT ===== */
+render();
 </script>
+
 </body>
 </html>
