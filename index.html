@@ -2,98 +2,275 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Comic Kingdom – Clean Version</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comic Kingdom – Version 20</title>
+
 <style>
-body{font-family:Arial;background:#eee;margin:0;padding:20px}
-.box{background:#fff;padding:15px;border-radius:10px;max-width:400px;margin:auto}
+body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:80px}
+nav{position:fixed;top:0;left:0;right:0;background:#fff;padding:10px;display:flex;gap:5px;z-index:10}
+nav button{flex:1;padding:10px}
+.section{display:none;padding:15px}
+.section.active{display:block}
+.box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
 .item{border:1px solid #ccc;padding:10px;margin:5px 0}
-button{margin-right:5px}
-.empty{color:#888}
+.empty{color:#777;font-style:italic}
+
+.bar{background:#ddd;border-radius:8px;overflow:hidden;height:14px;margin-bottom:6px}
+.bar span{display:block;height:100%;background:#4caf50}
+.xp span{background:#2196f3}
+
+.log{font-size:13px;color:#333;margin-top:5px}
+button{cursor:pointer}
 </style>
 </head>
+
 <body>
 
-<div class="box">
-  <h2>Charaktere</h2>
-  <div id="charList"></div>
+<!-- CHARACTER SELECT -->
+<div id="charSelect" class="section active">
+  <div class="box">
+    <h2>Charaktere</h2>
+    <div id="charList"></div>
 
-  <h3>Neuer Charakter</h3>
-  <input id="name" placeholder="Name">
-  <button onclick="createChar()">Erstellen</button>
+    <h3>Neuer Charakter</h3>
+    <input id="newName" placeholder="Name"><br><br>
+    <select id="newClass">
+      <option>Krieger</option>
+      <option>Magier</option>
+      <option>Kundschafter</option>
+    </select><br><br>
+    <button onclick="createCharacter()">Erstellen</button>
+  </div>
+</div>
+
+<nav id="nav" style="display:none">
+  <button onclick="show('status')">Status</button>
+  <button onclick="show('quests')">Quests</button>
+  <button onclick="logout()">Logout</button>
+</nav>
+
+<!-- STATUS -->
+<div id="status" class="section">
+  <div class="box">
+    <p><b id="uiName"></b> – Level <b id="uiLevel"></b></p>
+
+    HP
+    <div class="bar"><span id="hpBar"></span></div>
+
+    XP
+    <div class="bar xp"><span id="xpBar"></span></div>
+
+    <p>🟡 Gold: <b id="uiGold"></b></p>
+    <p>🍫 Schokolade: <b id="uiChoco"></b></p>
+
+    <button onclick="useChocolate()">🍫 benutzen (heilen)</button>
+
+    <div class="log" id="statusLog"></div>
+  </div>
+</div>
+
+<!-- QUESTS -->
+<div id="quests" class="section">
+  <div class="box">
+    <h3>Aktive Quest</h3>
+    <div id="questBox"></div><br>
+    <button onclick="startQuest()">Neue Quest</button>
+    <button onclick="cancelQuest()">Quest abbrechen</button>
+  </div>
 </div>
 
 <script>
-/* ===== STORAGE ===== */
-const KEY = "ck_chars_clean";
+/* ========= SAVE ========= */
+const SAVE_KEY="ck_v20_final";
+let chars=JSON.parse(localStorage.getItem(SAVE_KEY))||[];
+let player=null;
 
-/* ===== LOAD ===== */
-function loadChars(){
-  let chars = JSON.parse(localStorage.getItem(KEY)) || [];
+/* ========= QUEST GENERATOR ========= */
+const targets=["Ratten","Banditen","Monster","Ernte","Waren"];
+const actions=["Besiege","Vertreibe","Sammle","Hilf bei","Erledige"];
+const places=["im Wald","im Dorf","in der Mine","auf der Farm","in der Stadt"];
 
-  // 🔥 KRATOS WIRD HIER GARANTIERT ENTFERNT
-  chars = chars.filter(c => c.name !== "Kratos");
+function generateQuest(){
+ const special=Math.random()<0.2;
+ return{
+  name:`${actions[rand(actions)]} ${targets[rand(targets)]}`,
+  desc:`${actions[rand(actions)]} ${targets[rand(targets)]} ${places[rand(places)]}`,
+  duration:4000+Math.random()*4000,
+  special
+ };
+}
+function rand(a){return Math.floor(Math.random()*a.length);}
 
-  localStorage.setItem(KEY, JSON.stringify(chars));
-  return chars;
+/* ========= CHARACTERS ========= */
+function createCharacter(){
+ const name=newName.value.trim();
+ if(name.length<2)return alert("Name zu kurz");
+
+ const baseHP={Krieger:120,Magier:90,Kundschafter:100};
+
+ chars.push({
+  id:crypto.randomUUID(),
+  name,
+  class:newClass.value,
+  level:1,
+  xp:0,
+  xpMax:100,
+  hp:baseHP[newClass.value],
+  hpMax:baseHP[newClass.value],
+  gold:50,
+  chocolate:0,
+  quest:null
+ });
+ save(); renderList();
 }
 
-let chars = loadChars();
-
-/* ===== RENDER ===== */
-function render(){
-  const box = document.getElementById("charList");
-  box.innerHTML = "";
-
-  if(chars.length === 0){
-    box.innerHTML = "<p class='empty'>Keine Charaktere vorhanden</p>";
-    return;
-  }
-
-  chars.forEach(c=>{
-    box.innerHTML += `
-      <div class="item">
-        <b>${c.name}</b> (Level ${c.level})
-        <br>
-        <button onclick="deleteChar('${c.id}')">Löschen</button>
-      </div>
-    `;
-  });
+function renderList(){
+ charList.innerHTML="";
+ if(chars.length===0){
+  charList.innerHTML="<p class='empty'>Keine Charaktere</p>";
+  return;
+ }
+ chars.forEach(c=>{
+  charList.innerHTML+=`
+   <div class="item">
+    <b>${c.name}</b> (${c.class})<br>
+    <button onclick="selectChar('${c.id}')">Spielen</button>
+    <button onclick="deleteChar('${c.id}')">Löschen</button>
+   </div>`;
+ });
 }
 
-/* ===== CREATE ===== */
-function createChar(){
-  const name = document.getElementById("name").value.trim();
-  if(name.length < 2){
-    alert("Name zu kurz");
-    return;
-  }
-
-  chars.push({
-    id: Date.now().toString(),
-    name,
-    level: 1
-  });
-
-  save();
-  render();
-}
-
-/* ===== DELETE ===== */
 function deleteChar(id){
-  if(!confirm("Charakter wirklich löschen?")) return;
-  chars = chars.filter(c => c.id !== id);
-  save();
-  render();
+ if(confirm("Charakter löschen?")){
+  chars=chars.filter(c=>c.id!==id);
+  save(); renderList();
+ }
 }
 
-/* ===== SAVE ===== */
+function selectChar(id){
+ player=chars.find(c=>c.id===id);
+ nav.style.display="flex";
+ show("status");
+ updateUI();
+}
+
+/* ========= QUEST SYSTEM ========= */
+function startQuest(){
+ if(player.quest)return alert("Quest läuft bereits");
+ const q=generateQuest();
+ player.quest={...q,end:Date.now()+q.duration};
+ updateUI();
+}
+
+function cancelQuest(){
+ if(player.quest){
+  player.quest=null;
+  log("Quest abgebrochen");
+  updateUI();
+ }
+}
+
+function checkQuest(){
+ if(!player.quest)return;
+ if(Date.now()>=player.quest.end){
+
+  const finished=player.quest;
+  player.quest=null; // Exploit-Schutz
+
+  const gold=20+player.level*5;
+  const xp=40+player.level*10;
+  let choco=0;
+
+  if(finished.special || Math.random()<0.15) choco=1;
+
+  player.gold+=gold;
+  player.chocolate+=choco;
+  gainXP(xp);
+
+  log(`Quest beendet! +${gold} Gold +${xp} XP ${choco?"+1 🍫":""}`);
+ }
+}
+
+/* ========= XP / LEVEL ========= */
+function gainXP(x){
+ player.xp+=x;
+ while(player.xp>=player.xpMax){
+  player.xp-=player.xpMax;
+  player.level++;
+  player.xpMax=Math.floor(player.xpMax*1.4);
+  player.hpMax+=10;
+  player.hp=player.hpMax;
+  log("🎉 Level Up!");
+ }
+}
+
+/* ========= ITEMS ========= */
+function useChocolate(){
+ if(player.chocolate<=0)return;
+ player.chocolate--;
+ player.hp=player.hpMax;
+ log("🍫 Voll geheilt");
+ updateUI();
+}
+
+/* ========= UI ========= */
+function show(id){
+ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+}
+
+function updateUI(){
+ if(!player)return;
+
+ uiName.textContent=player.name;
+ uiLevel.textContent=player.level;
+ uiGold.textContent=player.gold;
+ uiChoco.textContent=player.chocolate;
+
+ hpBar.style.width=(player.hp/player.hpMax*100)+"%";
+ xpBar.style.width=(player.xp/player.xpMax*100)+"%";
+
+ if(player.quest){
+  const sec=Math.ceil((player.quest.end-Date.now())/1000);
+  questBox.innerHTML=
+   `<b>${player.quest.name}</b><br>
+    ${player.quest.desc}<br>
+    ⏳ ${sec}s ${player.quest.special?"⭐ Spezial":""}`;
+ }else{
+  questBox.innerHTML="<i>Keine aktive Quest</i>";
+ }
+
+ save();
+}
+
+function log(t){
+ statusLog.textContent=t;
+ setTimeout(()=>statusLog.textContent="",2500);
+}
+
+/* ========= SAVE ========= */
 function save(){
-  localStorage.setItem(KEY, JSON.stringify(chars));
+ localStorage.setItem(SAVE_KEY,JSON.stringify(chars));
+}
+window.addEventListener("beforeunload",save);
+
+/* ========= LOGOUT ========= */
+function logout(){
+ player=null;
+ nav.style.display="none";
+ show("charSelect");
+ renderList();
 }
 
-/* ===== INIT ===== */
-render();
-</script>
+/* ========= LOOP ========= */
+setInterval(()=>{
+ if(player){
+  checkQuest();
+  updateUI();
+ }
+},1000);
 
+renderList();
+</script>
 </body>
 </html>
