@@ -2,8 +2,9 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Comic Kingdom – Version 21</title>
+<title>Comic Kingdom – Version 22</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body{font-family:Arial;background:#f2f2f2;margin:0;padding-top:80px}
 nav{position:fixed;top:0;left:0;right:0;background:#fff;padding:10px;display:flex;gap:5px;z-index:10}
@@ -11,14 +12,15 @@ nav button{flex:1;padding:10px}
 .section{display:none;padding:15px}
 .section.active{display:block}
 .box{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px}
-.item{border:1px solid #ccc;padding:10px;border-radius:8px;margin-bottom:6px}
-.bar{background:#ddd;height:14px;border-radius:8px;overflow:hidden}
-.bar span{display:block;height:100%}
-.hp span{background:#e53935}
-.xp span{background:#1e88e5}
+.item{border:1px solid #ccc;padding:10px;margin:5px 0;border-radius:8px}
+.bar{background:#ddd;border-radius:8px;height:14px;overflow:hidden}
+.bar span{display:block;height:100%;background:#4caf50}
+.xp span{background:#2196f3}
 #notifyBox{position:fixed;top:90px;right:10px;z-index:100}
 .notify{background:#333;color:#fff;padding:10px;border-radius:8px;margin-bottom:6px;font-size:13px}
-.city{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cityGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.cityGrid button{padding:12px}
+small{opacity:.7}
 </style>
 </head>
 
@@ -34,11 +36,12 @@ nav button{flex:1;padding:10px}
  <button onclick="logout()">Logout</button>
 </nav>
 
+<!-- CHARAKTER -->
 <div id="charSelect" class="section active">
  <div class="box">
   <h3>Neuer Charakter</h3>
-  <input id="nameInput" placeholder="Name"><br><br>
-  <select id="classInput">
+  <input id="newName" placeholder="Name"><br><br>
+  <select id="newClass">
    <option value="">Klasse wählen</option>
    <option>Krieger</option>
    <option>Magier</option>
@@ -48,37 +51,43 @@ nav button{flex:1;padding:10px}
  </div>
 </div>
 
+<!-- STATUS -->
 <div id="status" class="section">
  <div class="box">
-  <b id="uiName"></b> – Level <b id="uiLevel"></b><br><br>
-  HP<div class="bar hp"><span id="hpBar"></span></div>
-  XP<div class="bar xp"><span id="xpBar"></span></div><br>
-  🟡 Gold: <b id="uiGold"></b> | 🍫 <b id="uiChoco"></b>
+  <b id="uiName"></b> (<span id="uiClass"></span>) – Level <b id="uiLevel"></b><br><br>
+  HP<div class="bar"><span id="hpBar"></span></div>
+  XP<div class="bar xp"><span id="xpBar"></span></div><br><br>
+  Gold: <b id="uiGold"></b> | 🍫 <b id="uiChoco"></b><br>
+  <small>XP-Bonus: <span id="uiXPBonus"></span>x | Gold-Bonus: <span id="uiGoldBonus"></span>x</small>
  </div>
 </div>
 
+<!-- QUESTS -->
 <div id="quests" class="section">
  <div class="box">
+  <h3>Quests</h3>
   <div id="questBox"></div><br>
-  <button onclick="startQuest(false)">Normale Quest</button>
+  <button onclick="startQuest(false)">🗺 Normale Quest</button>
   <button onclick="startQuest(true)">👑 Boss-Quest</button>
  </div>
 </div>
 
+<!-- STADT -->
 <div id="city" class="section">
  <div class="box">
   <h3>🏰 Stadt</h3>
-  <div class="city">
-   <button onclick="shop()">🏪 Händler</button>
+  <div class="cityGrid">
+   <button onclick="buyChocolate()">🍫 Händler</button>
+   <button onclick="shop()">🏪 Shop</button>
    <button onclick="arena()">🏟 Arena</button>
    <button onclick="academy()">🏰 Akademie</button>
    <button onclick="tavern()">🍺 Taverne</button>
    <button onclick="bank()">🏦 Bank</button>
-   <button onclick="bossPortal()">👑 Bossportal</button>
   </div>
  </div>
 </div>
 
+<!-- INVENTAR -->
 <div id="inventory" class="section">
  <div class="box">
   <h3>Inventar</h3>
@@ -87,157 +96,152 @@ nav button{flex:1;padding:10px}
 </div>
 
 <script>
-const SAVE="ck_v21";
-let player=JSON.parse(localStorage.getItem(SAVE));
+/* ================= CORE ================= */
+const SAVE_KEY="comic_kingdom_save";
+const GAME_VERSION=22;
+let player=JSON.parse(localStorage.getItem(SAVE_KEY));
 
-const rarities=[
- {n:"gewöhnlich",m:1},
- {n:"ungewöhnlich",m:1.2},
- {n:"selten",m:1.5},
- {n:"episch",m:2},
- {n:"legendär",m:3}
-];
+function migrate(p){
+ if(!p)return null;
+ if(!p.version)p.version=1;
 
+ p.inventory ??=[];
+ p.chocolate ??=0;
+ p.bonusXP ??=1;
+ p.bonusGold ??=1;
+ p.city ??={academy:1,bank:1,shop:1,arena:1,tavern:1};
+
+ p.version=GAME_VERSION;
+ return p;
+}
+
+if(player){player=migrate(player);save();}
+
+/* ================= UTIL ================= */
+function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(player))}
 function notify(t){
  const d=document.createElement("div");
  d.className="notify";d.textContent=t;
  notifyBox.appendChild(d);
  setTimeout(()=>d.remove(),3000);
 }
-
-function createCharacter(){
- const n=nameInput.value.trim();
- const c=classInput.value;
- if(!n||!c)return;
- player={
-  name:n,class:c,
-  level:1,xp:0,xpMax:100,
-  hp:120,hpMax:120,
-  gold:100,chocolate:1,
-  inventory:[],equip:{weapon:null,armor:null},
-  quest:null,bank:0,
-  bonusXP:1,arenaCD:0
- };
- save();nav.style.display="flex";show("status");
- notify("🎮 Willkommen "+n);
-}
-
-function genItem(boss=false){
- let max=player.level<20?2:player.level<40?3:4;
- if(boss && player.level>=40)max=4;
- const r=rarities[Math.floor(Math.random()*(max+1))];
- return{
-  name:r.n+" Item",
-  rarity:r.n,
-  power:Math.floor(player.level*5*r.m)
- };
-}
-
-function startQuest(boss){
- if(player.quest)return;
- const dur=boss?7000:4000;
- player.quest={boss,end:Date.now()+dur};
- notify("🗺 Quest gestartet");
-}
-
-function checkQuest(){
- if(!player?.quest)return;
- const left=Math.ceil((player.quest.end-Date.now())/1000);
- if(left>0){
-  questBox.textContent=`Quest läuft – ${left}s`;
-  return;
- }
- const boss=player.quest.boss;
- player.quest=null;
- const gold=boss?120:60;
- const xp=boss?150:80;
- player.gold+=gold;
- gainXP(xp);
- if(Math.random()<0.3||boss)player.inventory.push(genItem(boss));
- notify("✅ Quest abgeschlossen");
-}
-
-function gainXP(x){
- player.xp+=x*player.bonusXP;
- while(player.xp>=player.xpMax){
-  player.xp-=player.xpMax;
-  player.level++;
-  player.xpMax=Math.floor(player.xpMax*1.4);
-  player.hpMax+=15;
-  player.hp=player.hpMax;
-  notify("🎉 Level Up!");
- }
-}
-
-function arena(){
- if(Date.now()<player.arenaCD)return notify("⏳ Arena Cooldown");
- player.arenaCD=Date.now()+60000;
- const dmg=Math.floor(Math.random()*30+10);
- player.hp-=dmg;
- if(player.hp<=0){
-  player.hp=player.hpMax;
-  notify("💀 Besiegt – geheilt");
-  return;
- }
- const g=50;
- player.gold+=g;
- notify("🏟 Arena gewonnen +"+g+" Gold");
-}
-
-function academy(){
- if(player.gold<100)return notify("❌ Zu wenig Gold");
- player.gold-=100;
- player.bonusXP+=0.1;
- notify("🏰 Akademie verbessert");
-}
-
-function tavern(){
- if(player.quest)return;
- startQuest(false);
- if(Math.random()<0.5){player.chocolate++;notify("🍫 Bonus erhalten");}
-}
-
-function shop(){
- if(player.gold<50)return;
- player.gold-=50;
- player.inventory.push(genItem());
- notify("🏪 Item gekauft");
-}
-
-function bossPortal(){
- startQuest(true);
-}
-
-function bank(){
- const dep=Math.floor(player.gold/2);
- player.gold-=dep;
- player.bank+=dep;
- notify("🏦 "+dep+" Gold eingelagert");
-}
-
-function updateUI(){
- if(!player)return;
- uiName.textContent=player.name;
- uiLevel.textContent=player.level;
- uiGold.textContent=Math.floor(player.gold);
- uiChoco.textContent=player.chocolate;
- hpBar.style.width=(player.hp/player.hpMax*100)+"%";
- xpBar.style.width=(player.xp/player.xpMax*100)+"%";
- invBox.innerHTML=player.inventory.map(i=>`<div class="item">${i.name} (${i.power})</div>`).join("")||"Leer";
- save();
-}
-
 function show(id){
  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
  document.getElementById(id).classList.add("active");
 }
 
-function logout(){
- localStorage.removeItem(SAVE);
- location.reload();
+/* ================= CHAR ================= */
+function createCharacter(){
+ const n=newName.value.trim();
+ const c=newClass.value;
+ if(!n||!c)return;
+ player={
+  version:GAME_VERSION,
+  name:n,class:c,
+  level:1,xp:0,xpMax:100,
+  hp:100,hpMax:100,
+  gold:50,chocolate:0,
+  bonusXP:1,bonusGold:1,
+  inventory:[],quest:null,
+  city:{academy:1,bank:1,shop:1,arena:1,tavern:1}
+ };
+ save();nav.style.display="flex";show("status");
+ notify("🎮 Charakter erstellt");
 }
 
-function save(){localStorage.setItem(SAVE,JSON.stringify(player))}
+/* ================= QUESTS ================= */
+function allowedRarities(l,b){
+ if(l<5)return["gewöhnlich"];
+ if(l<10)return["gewöhnlich","ungewöhnlich"];
+ if(l<20)return["gewöhnlich","ungewöhnlich","selten"];
+ if(l<40)return b?["selten","episch"]:["gewöhnlich","ungewöhnlich","selten","episch"];
+ return b?["episch","legendär"]:["gewöhnlich","ungewöhnlich","selten","episch"];
+}
+
+function createItem(l,b){
+ const r=allowedRarities(l,b);
+ const rarity=r[Math.floor(Math.random()*r.length)];
+ const power=l*2+(rarity==="episch"?10:rarity==="legendär"?25:0);
+ return {name:rarity+"es Item",rarity,power};
+}
+
+function startQuest(boss){
+ if(player.quest)return;
+ player.quest={boss,end:Date.now()+(boss?7000:5000)};
+ notify(boss?"👑 Boss-Quest gestartet":"🗺 Quest gestartet");
+}
+
+function checkQuest(){
+ if(!player?.quest)return;
+ if(Date.now()>=player.quest.end){
+  const b=player.quest.boss;
+  player.quest=null;
+  const gold=(b?80:40)*player.bonusGold;
+  const xp=(b?120:60)*player.bonusXP;
+  player.gold+=gold;player.xp+=xp;
+  player.inventory.push(createItem(player.level,b));
+  notify("✅ Quest abgeschlossen");
+  while(player.xp>=player.xpMax){
+   player.xp-=player.xpMax;
+   player.level++;player.xpMax*=1.4;
+   notify("🎉 Level Up!");
+  }
+ }
+}
+
+/* ================= CITY ================= */
+function buyChocolate(){
+ if(player.gold<20)return;
+ player.gold-=20;player.chocolate++;
+ notify("🍫 Schokolade gekauft");
+}
+function shop(){
+ if(player.gold<30)return;
+ player.gold-=30;
+ player.inventory.push(createItem(player.level,false));
+ notify("🏪 Item gekauft");
+}
+function arena(){
+ if(Math.random()>0.4){
+  const g=30*player.bonusGold;
+  player.gold+=g;
+  notify("🏟 Arena gewonnen +"+g+" Gold");
+ }else notify("💀 Arena verloren");
+}
+function academy(){
+ if(player.gold<50)return;
+ player.gold-=50;
+ player.bonusXP+=0.1;
+ notify("🏰 Akademie verbessert");
+}
+function tavern(){
+ if(player.quest)return;
+ startQuest(false);
+ player.chocolate++;
+ notify("🍺 Extra-Quest erhalten");
+}
+function bank(){
+ notify("🏦 Bank-Feature kommt später");
+}
+
+/* ================= UI ================= */
+function updateUI(){
+ if(!player)return;
+ uiName.textContent=player.name;
+ uiClass.textContent=player.class;
+ uiLevel.textContent=player.level;
+ uiGold.textContent=Math.floor(player.gold);
+ uiChoco.textContent=player.chocolate;
+ uiXPBonus.textContent=player.bonusXP.toFixed(1);
+ uiGoldBonus.textContent=player.bonusGold.toFixed(1);
+ hpBar.style.width="100%";
+ xpBar.style.width=(player.xp/player.xpMax*100)+"%";
+ questBox.textContent=player.quest?"Quest läuft":"Keine aktive Quest";
+ invBox.innerHTML=player.inventory.map(i=>`<div class="item">${i.name} (${i.rarity})</div>`).join("")||"Leer";
+ save();
+}
+
+function logout(){localStorage.removeItem(SAVE_KEY);location.reload();}
 
 setInterval(()=>{checkQuest();updateUI()},1000);
 if(player){nav.style.display="flex";show("status")}
