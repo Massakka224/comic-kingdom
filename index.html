@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Comic Kingdom – Version 23.2</title>
+<title>Comic Kingdom – Version 24.1</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -19,8 +19,8 @@ nav button{flex:1;padding:10px}
 .xp span{background:#2196f3}
 #notifyBox{position:fixed;top:90px;right:10px;z-index:100}
 .notify{background:#333;color:#fff;padding:10px;border-radius:8px;margin-bottom:6px;font-size:13px}
-small{opacity:.7}
 button.small{padding:4px 8px;font-size:12px}
+.cityGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 </style>
 </head>
 
@@ -31,6 +31,7 @@ button.small{padding:4px 8px;font-size:12px}
 <nav id="nav" style="display:none">
  <button onclick="show('status')">Status</button>
  <button onclick="show('quests')">Quests</button>
+ <button onclick="show('city')">Stadt</button>
  <button onclick="show('inventory')">Inventar</button>
  <button onclick="logout()">Logout</button>
 </nav>
@@ -67,12 +68,24 @@ button.small{padding:4px 8px;font-size:12px}
  </div>
 </div>
 
+<div id="city" class="section">
+ <div class="box">
+  <h3>🏰 Stadt</h3>
+  <div class="cityGrid">
+   <button onclick="smith()">🏪 Schmied</button>
+   <button onclick="academy()">🏛 Akademie</button>
+   <button onclick="tavern()">🍺 Taverne</button>
+   <button onclick="bank()">🏦 Bank</button>
+   <button onclick="arena()">🏟 Arena</button>
+  </div>
+ </div>
+</div>
+
 <div id="inventory" class="section">
  <div class="box">
   <h3>🧤 Ausrüstung</h3>
   <div id="equipBox"></div>
  </div>
-
  <div class="box">
   <h3>🎒 Inventar</h3>
   <div id="invBox"></div>
@@ -80,7 +93,8 @@ button.small{padding:4px 8px;font-size:12px}
 </div>
 
 <script>
-const SAVE="comic_kingdom_v232";
+const VERSION="24.1";
+const SAVE="comic_kingdom_SAVE";
 let player=JSON.parse(localStorage.getItem(SAVE));
 
 function notify(t){
@@ -89,68 +103,68 @@ function notify(t){
  notifyBox.appendChild(d);
  setTimeout(()=>d.remove(),3000);
 }
-
 function save(){localStorage.setItem(SAVE,JSON.stringify(player))}
-
 function show(id){
  document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
  document.getElementById(id).classList.add("active");
 }
 
-/* ===== SAVE REPAIR ===== */
-function repairSave(){
- if(!player) return;
- player.inventory ??= [];
- player.equipment ??= {weapon:null,armor:null};
- player.quest ??= null;
- player.chocolate ??= 0;
+function migrate(){
+ if(!player)return;
+ player.version=VERSION;
+ player.inventory ??=[];
+ player.equipment ??={weapon:null,armor:null};
+ player.quest ??=null;
+ player.chocolate ??=0;
+ player.bonusXP ??=1;
+ player.bonusGold ??=1;
+ player.bankGold ??=0;
+ player.lastTavern ??=0;
+ player.lastArena ??=0;
 }
 
-/* ===== CHAR ===== */
 function createCharacter(){
  const n=newName.value.trim(),c=newClass.value;
  if(!n||!c)return;
  player={
-  name:n,class:c,
-  level:1,xp:0,xpMax:100,
+  version:VERSION,
+  name:n,class:c,level:1,xp:0,xpMax:100,
   gold:50,chocolate:0,
   inventory:[],quest:null,
-  equipment:{weapon:null,armor:null}
+  equipment:{weapon:null,armor:null},
+  bonusXP:1,bonusGold:1,
+  bankGold:0,lastTavern:0,lastArena:0
  };
  save();nav.style.display="flex";show("status");
  notify("🎮 Charakter erstellt");
 }
 
-/* ===== ITEMS ===== */
-function createItem(level,isBoss){
+function createItem(level,boss){
  const rar=["gewöhnlich","ungewöhnlich","selten","episch","legendär"];
- const r=rar[Math.min(rar.length-1,Math.floor(level/8)+(isBoss?1:0))];
+ let tier=Math.min(2,Math.floor(level/5));
+ if(boss && level>=10) tier++;
+ if(boss && level>=20) tier++;
+ const r=rar[Math.min(rar.length-1,tier)];
  const type=Math.random()>0.5?"weapon":"armor";
  return{
   id:crypto.randomUUID(),
   name:`${r}e ${type==="weapon"?"Waffe":"Rüstung"}`,
-  rarity:r,
-  type,
+  rarity:r,type,
   power:level*2+(r==="episch"?10:r==="legendär"?25:0)
  };
 }
 
-/* ===== BONUS ===== */
-function getBonuses(){
- let xp=1,gold=1,boss=1;
+function bonus(){
+ let xp=player.bonusXP,gold=player.bonusGold;
  if(player.equipment.weapon) xp+=player.equipment.weapon.power/100;
- if(player.equipment.armor){
-  gold+=player.equipment.armor.power/120;
-  boss+=player.equipment.armor.power/150;
- }
- return{xp,gold,boss};
+ if(player.equipment.armor) gold+=player.equipment.armor.power/120;
+ return{xp,gold};
 }
 
-/* ===== QUESTS ===== */
-function startQuest(boss){
- if(player.quest)return;
- player.quest={boss,end:Date.now()+(boss?6000:4000)};
- notify(boss?"👑 Bosskampf gestartet":"🗺 Quest gestartet");
+function startQuest(b){
+ if(player.quest)return notify("⏳ Quest läuft");
+ player.quest={boss:b,end:Date.now()+(b?8000:5000)};
+ notify(b?"👑 Boss gestartet":"🗺 Quest gestartet");
 }
 
 function checkQuest(){
@@ -158,12 +172,12 @@ function checkQuest(){
  if(Date.now()>=player.quest.end){
   const b=player.quest.boss;
   player.quest=null;
-  const bonus=getBonuses();
-  player.gold+=Math.floor((b?80:40)*bonus.gold);
-  player.xp+=Math.floor((b?120:60)*bonus.xp);
-  player.inventory.push(createItem(player.level,b));
-  notify("🎁 Item erhalten");
-
+  const bo=bonus();
+  player.gold+=Math.floor((b?100:50)*bo.gold);
+  player.xp+=Math.floor((b?140:70)*bo.xp);
+  const item=createItem(player.level,b);
+  player.inventory.push(item);
+  notify(`🎁 ${item.name} erhalten`);
   while(player.xp>=player.xpMax){
    player.xp-=player.xpMax;
    player.level++;
@@ -173,36 +187,74 @@ function checkQuest(){
  }
 }
 
-/* ===== INVENTAR ===== */
+function smith(){
+ if(player.inventory.length===0)return notify("❌ Kein Item");
+ const i=player.inventory[0];
+ const cost=20+player.level*5;
+ if(player.gold<cost)return notify("❌ Zu wenig Gold");
+ player.gold-=cost;
+ i.power+=5;
+ notify("🏪 Item verbessert");
+}
+
+function academy(){
+ if(player.gold<50)return notify("❌ Zu wenig Gold");
+ player.gold-=50;
+ player.bonusXP+=0.05;
+ notify("🏛 XP dauerhaft erhöht");
+}
+
+function tavern(){
+ if(Date.now()-player.lastTavern<60000)return notify("⏳ Später wieder");
+ player.lastTavern=Date.now();
+ player.chocolate++;
+ notify("🍫 Schokolade erhalten");
+}
+
+function bank(){
+ if(player.gold>=20){
+  player.gold-=20;player.bankGold+=20;
+  notify("🏦 Gold eingezahlt");
+ }else if(player.bankGold>=20){
+  player.bankGold-=20;player.gold+=20;
+  notify("🏦 Gold abgehoben");
+ }
+}
+
+function arena(){
+ if(Date.now()-player.lastArena<30000)return notify("⏳ Arena-Cooldown");
+ player.lastArena=Date.now();
+ if(Math.random()>0.5){
+  player.gold+=40;
+  notify("🏟 Arena gewonnen");
+ }else notify("💀 Arena verloren");
+}
+
 function equipItem(id){
  const i=player.inventory.find(x=>x.id===id);
  if(!i)return;
  player.inventory=player.inventory.filter(x=>x.id!==id);
- if(player.equipment[i.type]){
-  player.inventory.push(player.equipment[i.type]);
- }
+ if(player.equipment[i.type]) player.inventory.push(player.equipment[i.type]);
  player.equipment[i.type]=i;
  notify("🧤 Ausgerüstet");
 }
 
-function unequip(type){
- const i=player.equipment[type];
- if(!i)return;
- player.inventory.push(i);
- player.equipment[type]=null;
+function unequip(t){
+ if(!player.equipment[t])return;
+ player.inventory.push(player.equipment[t]);
+ player.equipment[t]=null;
  notify("❌ Abgelegt");
 }
 
-/* ===== UI ===== */
 function updateUI(){
  if(!player)return;
- const bonus=getBonuses();
+ const bo=bonus();
  uiName.textContent=player.name;
  uiLevel.textContent=player.level;
  uiGold.textContent=player.gold;
  uiChoco.textContent=player.chocolate;
  xpBar.style.width=(player.xp/player.xpMax*100)+"%";
- bonusInfo.textContent=`XP x${bonus.xp.toFixed(2)} | Gold x${bonus.gold.toFixed(2)}`;
+ bonusInfo.textContent=`XP x${bo.xp.toFixed(2)} | Gold x${bo.gold.toFixed(2)}`;
 
  equipBox.innerHTML="";
  ["weapon","armor"].forEach(t=>{
@@ -210,14 +262,13 @@ function updateUI(){
   equipBox.innerHTML+=e
    ? `<div class="item equip">${e.name} (+${e.power})
       <button class="small" onclick="unequip('${t}')">Ablegen</button></div>`
-   : `<div class="item">Keine ${t==="weapon"?"Waffe":"Rüstung"}</div>`;
+   : `<div class="item">Keine ${t}</div>`;
  });
 
  invBox.innerHTML=player.inventory.length
   ? player.inventory.map(i=>`
    <div class="item">
-    <b>${i.name}</b><br>
-    Typ: ${i.type} | Stärke: ${i.power}<br>
+    <b>${i.name}</b> (+${i.power})<br>
     <button class="small" onclick="equipItem('${i.id}')">Ausrüsten</button>
    </div>`).join("")
   : "<i>Inventar leer</i>";
@@ -229,10 +280,9 @@ function updateUI(){
  save();
 }
 
-function logout(){localStorage.removeItem(SAVE);location.reload()}
-
-if(player){repairSave();nav.style.display="flex";show("status")}
+if(player){migrate();nav.style.display="flex";show("status")}
 setInterval(()=>{checkQuest();updateUI()},1000);
+function logout(){location.reload()}
 </script>
 
 </body>
